@@ -6,18 +6,37 @@ import path from 'path';
 import axios from 'axios';
 import WebSocket from 'ws';
 import { noop } from 'lodash';
+import Logger from 'logdna';
 
 import { getHash } from './utils/hash-helper';
 
-const targetAccount = {
-  key: '4NP3ezz2wuZQ3ahxSm3xZL6x033yh9w48metnjFZy8MOsDWodbIvcpn5hTLpXrKO',
-  secret: 'JeQlMzCpiikXUWwzFl9AX0gy9iwD024pM1PIFwt4ndFPUlMNGM96jcIqW11vkGK2'
-};
+const envTargetAccount = process.env.TARGET_ACCOUNT;
+const envCopycatAccount = process.env.COPYCAT_ACCOUNT;
+const logdnaKey = process.env.LOGDNA_KEY;
 
-const copyCatBot = {
-  key: 'SsRQCKESUC3u33t9TscK8HUqdaYJekm5PxNAmT4WPYOYIt7qXLQVymKOTf3lyaKA',
-  secret: '3W6lPdnbs3zPPVh4D1b9bqAOdTjt8xIqyfYaH4mllUwwZXdzqntabVKdYWUcZi7k'
-};
+const targetAccount = JSON.parse(envTargetAccount);
+const copyCatBot = JSON.parse(envCopycatAccount);
+
+if (logdnaKey) {
+  const logger = Logger.createLogger(logdnaKey, {
+    hostname: 'binance-copycat-trade',
+    app: 'binance-copycat-trade',
+    env: process.env.NODE_ENV
+  });
+
+  const origConsoleLog = console.log;
+  const origConsoleError = console.error;
+
+  console.log = (msg) => {
+    logger.log(msg);
+    origConsoleLog(msg);
+  };
+
+  console.error = (msg) => {
+    logger.error(msg);
+    origConsoleError(msg);
+  };
+}
 
 class BinanceTime {
   timeDiff = 0;
@@ -36,12 +55,13 @@ class BinanceSymbol {
   symbols = []
 
   fetchSymbols = async () => {
+    console.log('Get symbols');
     try {
       const { data = {} } = await axios.get('https://api.binance.com/api/v3/exchangeInfo');
       this.symbols = (data.symbols || []);
       console.log(`Symbol def count: ${this.symbols.length}`);
     } catch (e) {
-      console.log(e.response.data);
+      console.error(`Symbols get fail: ${JSON.stringify(e.response.data)}`);
     }
   }
 
@@ -54,16 +74,19 @@ class AccountBalance {
   balances = []
   accountKey = null
   accountSecret = null
+  id = null
 
   constructor (key, secret) {
     this.accountKey = key;
     this.accountSecret = secret;
+    this.id = key.slice(-5);
   }
 
   fetchBalances = async () => {
     const params = `timestamp=${binanceTime.getToday()}`;
     const sig = getHash(params, this.accountSecret);
     try {
+      console.log(`[${this.id}] Get balances`);
       const { data = {} } = await axios.get(
         `https://api.binance.com/api/v3/account?${params}&signature=${sig}`,
         { headers: { 'X-MBX-APIKEY': this.accountKey } }
@@ -71,21 +94,23 @@ class AccountBalance {
       this.balances = (data.balances || [])
         .map(b => ({ ...b, free: Number(b.free), locked: Number(b.locked) }))
         .filter(b => b.free > 0 || b.locked > 0);
-      console.log(this.balances);
+      console.log(`[${this.id}] Balances: ${JSON.stringify(this.balances)}`);
     } catch (e) {
-      console.log(e.response.data);
+      console.error(`[${this.id}] Balances get fail: ${JSON.stringify(e.response.data)}`);
     }
   }
 
   adjustAccountBalanceFromEvent = (event = []) => {
+    console.log(`[${this.id}] Adjust Balances Start`);
     event.forEach(e => {
       const convertedEvent = { asset: e.a, free: Number(e.f), locked: Number(e.l) };
       const index = this.balances.findIndex(b => b.asset === e.a);
       if (index === -1) this.balances.push(convertedEvent);
       else this.balances[index] = convertedEvent;
-
-      this.balances = this.balances.filter(b => b.free > 0 || b.locked > 0);
     });
+
+    this.balances = this.balances.filter(b => b.free > 0 || b.locked > 0);
+    console.log(`[${this.id}] Adjust Balances: ${JSON.stringify(this.balances)}`);
   }
 
   getAsset = (coin) => {
@@ -107,13 +132,13 @@ class BinanceWebSocket {
   constructor (key, messageHandler) {
     this.key = key;
     this.messageHandler = messageHandler;
+    this.id = key.slice(-5);
+
     this.createSocketClient();
   }
 
   createSocketClient = async () => {
     const targetListenKey = await getAccountListenKey(this.key);
-    this.id = targetListenKey;
-
     this.socketClient = new WebSocket(`wss://stream.binance.com:9443/ws/${targetListenKey}`);
     this.socketClient.on('open', this.openHandler);
     this.socketClient.on('message', this.messageHandler);
@@ -124,17 +149,17 @@ class BinanceWebSocket {
   }
 
   openHandler = () => {
-    console.log(`Socket ${this.id} opened`);
+    console.log(`[${this.id}]Socket opened`);
     this.setPingTimeout();
   }
 
   errorHandler = (err) => {
-    console.error(`Socket ${this.id} encountered error: `, err.message, 'Closing socket');
+    console.error(`[${this.id}]Socket error: ${err.message}`);
     this.socketClient.close();
   }
 
   closeHandler = (e) => {
-    console.log(`Socket ${this.id} is closed. Reconnect will be attempted in 1 second.`, e.reason);
+    console.log(`[${this.id}]Socket closed: ${e.reason}`);
 
     clearTimeout(this.pingTimeout);
     clearTimeout(this.pingWaitTimeout);
@@ -204,8 +229,7 @@ const createOrderFromEvent = async (event) => {
       `&timestamp=${today}`;
   }
 
-  console.log('Create Order');
-  console.log(params);
+  console.log(`Create Order: ${params}`);
   const sig = getHash(params, copyCatBot.secret);
   let result = {};
   try {
@@ -214,9 +238,9 @@ const createOrderFromEvent = async (event) => {
       undefined,
       { headers: { 'X-MBX-APIKEY': copyCatBot.key } }
     );
+    console.log(`Create Order Done: ${params}`);
   } catch (e) {
-    console.log('Create Order Failed');
-    console.log(e.response.data);
+    console.error(`Create Order Failed: ${JSON.stringify(e.response.data)}`);
   }
 
   return result;
@@ -226,8 +250,7 @@ const cancelOrderFromEvent = async (event) => {
   const today = binanceTime.getToday();
   const params = `symbol=${event.s}&orderId=${event.i}` +
     `&timestamp=${today}`;
-  console.log('Cancel Order');
-  console.log(params);
+  console.log(`Cancel Order: ${params}`);
   const sig = getHash(params, copyCatBot.secret);
   let result = {};
   try {
@@ -235,9 +258,9 @@ const cancelOrderFromEvent = async (event) => {
       `https://api.binance.com/api/v3/order?${params}&signature=${sig}`,
       { headers: { 'X-MBX-APIKEY': copyCatBot.key } }
     );
+    console.log(`Cancel Order Done: ${params}`);
   } catch (e) {
-    console.log('Delete Order Failed');
-    console.log(e.response.data);
+    console.error(`Delete Order Failed: ${e.response.data}`);
   }
 
   return result;
@@ -245,8 +268,6 @@ const cancelOrderFromEvent = async (event) => {
 
 const onTargetAccountMessage = (msg) => {
   const data = JSON.parse(msg);
-  console.log('target action');
-  console.log(msg);
 
   switch (data.e) {
     case 'executionReport': {
@@ -269,8 +290,7 @@ const onTargetAccountMessage = (msg) => {
           ]);
 
           console.log('Limit Order Pair');
-          console.log(limitOrderPair);
-          console.log(' ');
+          console.log(JSON.stringify(limitOrderPair, null, 2));
         });
         break;
       }
@@ -290,8 +310,7 @@ const onTargetAccountMessage = (msg) => {
           ]);
 
           console.log('Limit Order Pair');
-          console.log(limitOrderPair);
-          console.log(' ');
+          console.log(JSON.stringify(limitOrderPair, null, 2));
         });
         break;
       }
@@ -301,10 +320,8 @@ const onTargetAccountMessage = (msg) => {
         if (pairIndex === -1) break;
 
         const [[, copycatOrder]] = limitOrderPair.splice(pairIndex, 1);
-        console.log(`Order ${data.X}`);
-        console.log('Limit Order Pair');
-        console.log(limitOrderPair);
-        console.log(' ');
+        console.log(`Order ${data.X}, Limit Order Pair`);
+        console.log(JSON.stringify(limitOrderPair, null, 2));
 
         if (data.x === 'CANCELED') cancelOrderFromEvent({ s: copycatOrder.symbol, i: copycatOrder.orderId });
         break;
@@ -343,8 +360,6 @@ const onTargetAccountMessage = (msg) => {
 
 const onCopycatAccountMessage = (msg) => {
   const data = JSON.parse(msg);
-  console.log('copycat action');
-  console.log(msg);
 
   switch (data.e) {
     case 'executionReport':
@@ -353,10 +368,8 @@ const onCopycatAccountMessage = (msg) => {
         if (pairIndex === -1) break;
 
         limitOrderPair.splice(pairIndex, 1);
-        console.log(`Order ${data.X}`);
-        console.log('Limit Order Pair');
-        console.log(limitOrderPair);
-        console.log(' ');
+        console.log(`Order ${data.X}, Limit Order Pair`);
+        console.log(JSON.stringify(limitOrderPair, null, 2));
       }
 
       break;

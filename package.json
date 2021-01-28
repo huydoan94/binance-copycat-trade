@@ -19,6 +19,7 @@
     "core-js": "^3.6.4",
     "express": "^4.17.1",
     "lodash": "^4.17.15",
+    "logdna": "^3.5.2",
     "moment": "^2.24.0",
     "moment-timezone": "^0.5.27",
     "regenerator-runtime": "^0.13.5",
