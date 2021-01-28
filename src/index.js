@@ -5,7 +5,7 @@ import express from 'express';
 import path from 'path';
 import axios from 'axios';
 import WebSocket from 'ws';
-import { noop } from 'lodash';
+import { noop, memoize } from 'lodash';
 import Logger from 'logdna';
 
 import { getHash } from './utils/hash-helper';
@@ -65,9 +65,9 @@ class BinanceSymbol {
     }
   }
 
-  getSymbolData = (symbol) => {
+  getSymbolData = memoize((symbol) => {
     return this.symbols.find(s => s.symbol === symbol);
-  }
+  })
 }
 
 class AccountBalance {
@@ -196,6 +196,12 @@ const copycatAccountBalance = new AccountBalance(copyCatBot.key, copyCatBot.secr
 
 const limitOrderPair = [];
 
+const calculateFromPercentage = (note, percentage) => {
+  const result = note * percentage;
+  if (percentage > 0.94) return note;
+  return result;
+};
+
 const getAccountListenKey = async (key) => {
   const { data: { listenKey: targetListenKey } } = await axios.post(
     'https://api.binance.com/api/v3/userDataStream',
@@ -281,7 +287,7 @@ const onTargetAccountMessage = (msg) => {
         if (!targetAsset || !copyCatAsset || targetAsset.free === 0 || copyCatAsset.free === 0) break;
 
         const percentage = (Number(data.q) * Number(data.p)) / targetAsset.free;
-        const orderQuantity = copyCatAsset.free * percentage;
+        const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage);
         createOrderFromEvent({ ...data, q: orderQuantity }).then(({ data: orderResp }) => {
           if (!orderResp) return;
           limitOrderPair.push([
@@ -301,7 +307,7 @@ const onTargetAccountMessage = (msg) => {
         if (!targetAsset || !copyCatAsset || targetAsset.free === 0 || copyCatAsset.free === 0) break;
 
         const percentage = Number(data.q) / targetAsset.free;
-        const orderQuantity = copyCatAsset.free * percentage;
+        const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage);
         createOrderFromEvent({ ...data, q: orderQuantity }).then(({ data: orderResp }) => {
           if (!orderResp) return;
           limitOrderPair.push([
@@ -333,7 +339,7 @@ const onTargetAccountMessage = (msg) => {
         if (!targetAsset || !copyCatAsset || targetAsset.free === 0 || copyCatAsset.free === 0) break;
 
         const percentage = Number(data.Z) / targetAsset.free;
-        const orderQuantity = copyCatAsset.free * percentage;
+        const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage);
         createOrderFromEvent({ ...data, Q: orderQuantity });
         break;
       }
@@ -344,7 +350,7 @@ const onTargetAccountMessage = (msg) => {
         if (!targetAsset || !copyCatAsset || targetAsset.free === 0 || copyCatAsset.free === 0) break;
 
         const percentage = Number(data.q) / targetAsset.free;
-        const orderQuantity = copyCatAsset.free * percentage;
+        const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage);
         createOrderFromEvent({ ...data, q: orderQuantity });
       }
 
