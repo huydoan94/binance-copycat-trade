@@ -1,0 +1,54 @@
+{
+  "name": "binance-copycat-trade",
+  "version": "0.0.1",
+  "description": "An application copycat other Binance Account trading",
+  "main": "src/index.js",
+  "engines": {
+    "node": "14.x.x"
+  },
+  "scripts": {
+    "build": "node scripts/build.js",
+    "dev": "node scripts/start.js",
+    "lint": "eslint src/**/* --fix"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.19.0",
+    "core-js": "^3.6.4",
+    "express": "^4.17.1",
+    "lodash": "^4.17.15",
+    "moment": "^2.24.0",
+    "moment-timezone": "^0.5.27",
+    "regenerator-runtime": "^0.13.5",
+    "ws": "^7.4.2"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.8.4",
+    "@babel/core": "^7.6.4",
+    "@babel/plugin-proposal-class-properties": "^7.8.3",
+    "@babel/plugin-transform-flow-strip-types": "^7.9.0",
+    "@babel/preset-env": "^7.6.3",
+    "@babel/preset-flow": "^7.0.0",
+    "babel-eslint": "^10.0.3",
+    "babel-loader": "^8.0.6",
+    "babel-plugin-lodash": "^3.3.4",
+    "case-sensitive-paths-webpack-plugin": "^2.3.0",
+    "chalk": "^2.4.2",
+    "eslint": "^6.1.0",
+    "eslint-config-standard": "^14.1.0",
+    "eslint-loader": "^3.0.0",
+    "eslint-plugin-flowtype": "^3.13.0",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-node": "^10.0.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "eslint-watch": "^6.0.1",
+    "flow-bin": "^0.109.0",
+    "nodemon": "^1.19.4",
+    "rimraf": "^3.0.0",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.9"
+  }
+}
