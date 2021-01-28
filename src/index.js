@@ -296,7 +296,7 @@ const onTargetAccountMessage = (msg) => {
           ]);
 
           console.log('Limit Order Pair');
-          console.log(JSON.stringify(limitOrderPair, null, 2));
+          console.log(JSON.stringify(limitOrderPair));
         });
         break;
       }
@@ -316,7 +316,7 @@ const onTargetAccountMessage = (msg) => {
           ]);
 
           console.log('Limit Order Pair');
-          console.log(JSON.stringify(limitOrderPair, null, 2));
+          console.log(JSON.stringify(limitOrderPair));
         });
         break;
       }
@@ -327,7 +327,7 @@ const onTargetAccountMessage = (msg) => {
 
         const [[, copycatOrder]] = limitOrderPair.splice(pairIndex, 1);
         console.log(`Order ${data.X}, Limit Order Pair`);
-        console.log(JSON.stringify(limitOrderPair, null, 2));
+        console.log(JSON.stringify(limitOrderPair));
 
         if (data.x === 'CANCELED') cancelOrderFromEvent({ s: copycatOrder.symbol, i: copycatOrder.orderId });
         break;
@@ -375,7 +375,7 @@ const onCopycatAccountMessage = (msg) => {
 
         limitOrderPair.splice(pairIndex, 1);
         console.log(`Order ${data.X}, Limit Order Pair`);
-        console.log(JSON.stringify(limitOrderPair, null, 2));
+        console.log(JSON.stringify(limitOrderPair));
       }
 
       break;
