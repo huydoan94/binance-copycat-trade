@@ -9,6 +9,7 @@ import { noop, memoize } from 'lodash';
 import Logger from 'logdna';
 
 import { getHash } from './utils/hash-helper';
+import { floorWithPrecision } from './utils/math';
 
 const envTargetAccount = process.env.TARGET_ACCOUNT;
 const envCopycatAccount = process.env.COPYCAT_ACCOUNT;
@@ -217,12 +218,13 @@ const createOrderFromEvent = async (event) => {
   const { quoteAssetPrecision, filters } = binanceSymbol.getSymbolData(event.s);
   const lotSize = filters.find(f => f.filterType === 'LOT_SIZE');
 
-  const quoteQuantity = Number(event.Q).toFixed(quoteAssetPrecision);
+  const quoteQuantity = floorWithPrecision(Number(event.Q), quoteAssetPrecision);
   let quantity = Number(event.q);
   if (lotSize) {
     const { stepSize } = lotSize;
-    const quantityPrecision = `${Number(stepSize)}`.split('.')[1].length;
-    quantity = quantity.toFixed(quantityPrecision);
+    const [, decimal] = `${Number(stepSize)}`.split('.');
+    const quantityPrecision = decimal ? decimal.length : 0;
+    quantity = floorWithPrecision(quantity, quantityPrecision);
   }
 
   let params = `symbol=${event.s}&side=${event.S}&type=${event.o}` +
