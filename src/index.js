@@ -198,9 +198,8 @@ const copycatAccountBalance = new AccountBalance(copyCatBot.key, copyCatBot.secr
 const limitOrderPair = [];
 
 const calculateFromPercentage = (note, percentage) => {
-  const result = note * percentage;
   if (percentage > 0.94) return note;
-  return result;
+  return note * percentage;
 };
 
 const getAccountListenKey = async (key) => {
@@ -289,7 +288,7 @@ const onTargetAccountMessage = (msg) => {
         if (!targetAsset || !copyCatAsset || targetAsset.free === 0 || copyCatAsset.free === 0) break;
 
         const percentage = (Number(data.q) * Number(data.p)) / targetAsset.free;
-        const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage);
+        const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage) / Number(data.p);
         createOrderFromEvent({ ...data, q: orderQuantity }).then(({ data: orderResp }) => {
           if (!orderResp) return;
           limitOrderPair.push([
