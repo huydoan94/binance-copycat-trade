@@ -231,7 +231,10 @@ const deleteLimitOrderPair = async ({ symbol, targetOrderId, copyOrderId }) => {
 
   await dbClient
     .query(`DELETE FROM limit_order_pairs WHERE symbol='${symbol}'${orderParam}`)
-    .then(() => console.log(`Deleted limit order pair: ${JSON.stringify({ symbol, targetOrderId, copyOrderId })}`))
+    .then(({ rowCount }) => {
+      if (!rowCount) return;
+      console.log(`Deleted limit order pair: ${JSON.stringify({ symbol, targetOrderId, copyOrderId })}`);
+    })
     .catch(() => null);
 };
 
