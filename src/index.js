@@ -400,12 +400,7 @@ const onCopycatAccountMessage = (msg) => {
   switch (data.e) {
     case 'executionReport':
       if (data.o === 'LIMIT' && (data.x === 'CANCELED' || data.X === 'FILLED')) {
-        findLimitOrderPair({ symbol: data.s, copyOrderId: data.i })
-          .then(([pair]) => {
-            if (!pair) return;
-
-            deleteLimitOrderPair({ symbol: data.s, copyOrderId: data.i });
-          });
+        deleteLimitOrderPair({ symbol: data.s, copyOrderId: data.i });
       }
 
       break;
