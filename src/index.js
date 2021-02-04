@@ -7,6 +7,8 @@ import axios from 'axios';
 import WebSocket from 'ws';
 import { noop, memoize } from 'lodash';
 import Logger from 'logdna';
+import { Client as DbClient } from 'pg';
+import shortid from 'shortid';
 
 import { getHash } from './utils/hash-helper';
 import { floorWithPrecision } from './utils/math';
@@ -14,9 +16,11 @@ import { floorWithPrecision } from './utils/math';
 const envTargetAccount = process.env.TARGET_ACCOUNT;
 const envCopycatAccount = process.env.COPYCAT_ACCOUNT;
 const logdnaKey = process.env.LOGDNA_KEY;
+const dbUrl = process.env.DATABASE_URL;
 
 const targetAccount = JSON.parse(envTargetAccount);
 const copyCatBot = JSON.parse(envCopycatAccount);
+const dbClient = new DbClient(dbUrl);
 
 if (logdnaKey) {
   const logger = Logger.createLogger(logdnaKey, {
@@ -195,7 +199,38 @@ const binanceSymbol = new BinanceSymbol();
 const targetAccountBalance = new AccountBalance(targetAccount.key, targetAccount.secret);
 const copycatAccountBalance = new AccountBalance(copyCatBot.key, copyCatBot.secret);
 
-const limitOrderPair = [];
+const findLimitOrderPair = async ({ symbol, targetOrderId, copyOrderId }) => {
+  let orderParam;
+  if (targetOrderId) orderParam = ' ' + `AND target_order_id=${targetOrderId}`;
+  if (copyOrderId) orderParam = ' ' + `AND copy_order_id=${copyOrderId}`;
+  if (!symbol || !orderParam) return [];
+
+  const { rows } = await dbClient
+    .query(`SELECT * from limit_order_pairs WHERE symbol='${symbol}'${orderParam}`)
+    .catch(() => ({ rows: [] }));
+  return rows;
+};
+
+const createLimitOrderPair = async ({ symbol, targetOrderId, copyOrderId }) => {
+  if (!symbol || !targetOrderId || !copyOrderId) return;
+  await dbClient
+    .query(`INSERT INTO limit_order_pairs (id, target_order_id, copy_order_id, symbol)
+            VALUES ('${shortid.generate()}', ${targetOrderId}, ${copyOrderId}, '${symbol}')`)
+    .then(() => console.log(`Created limit order pair: ${JSON.stringify({ symbol, targetOrderId, copyOrderId })}`))
+    .catch(() => null);
+};
+
+const deleteLimitOrderPair = async ({ symbol, targetOrderId, copyOrderId }) => {
+  let orderParam;
+  if (targetOrderId) orderParam = ' ' + `AND target_order_id=${targetOrderId}`;
+  if (copyOrderId) orderParam = ' ' + `AND copy_order_id=${copyOrderId}`;
+  if (!symbol || !orderParam) return;
+
+  await dbClient
+    .query(`DELETE FROM limit_order_pairs WHERE symbol='${symbol}'${orderParam}`)
+    .then(() => console.log(`Deleted limit order pair: ${JSON.stringify({ symbol, targetOrderId, copyOrderId })}`))
+    .catch(() => null);
+};
 
 const calculateFromPercentage = (note, percentage) => {
   if (percentage > 0.94) return note;
@@ -289,16 +324,11 @@ const onTargetAccountMessage = (msg) => {
 
         const percentage = (Number(data.q) * Number(data.p)) / targetAsset.free;
         const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage) / Number(data.p);
-        createOrderFromEvent({ ...data, q: orderQuantity }).then(({ data: orderResp }) => {
-          if (!orderResp) return;
-          limitOrderPair.push([
-            { orderId: data.i, symbol: data.s },
-            { orderId: orderResp.orderId, symbol: orderResp.symbol }
-          ]);
-
-          console.log('Limit Order Pair');
-          console.log(JSON.stringify(limitOrderPair));
-        });
+        createOrderFromEvent({ ...data, q: orderQuantity })
+          .then(({ data: orderResp }) => {
+            if (!orderResp) return;
+            return createLimitOrderPair({ symbol: data.s, targetOrderId: data.i, copyOrderId: orderResp.orderId });
+          });
         break;
       }
 
@@ -311,26 +341,19 @@ const onTargetAccountMessage = (msg) => {
         const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage);
         createOrderFromEvent({ ...data, q: orderQuantity }).then(({ data: orderResp }) => {
           if (!orderResp) return;
-          limitOrderPair.push([
-            { orderId: data.i, symbol: data.s },
-            { orderId: orderResp.orderId, symbol: orderResp.symbol }
-          ]);
-
-          console.log('Limit Order Pair');
-          console.log(JSON.stringify(limitOrderPair));
+          return createLimitOrderPair({ symbol: data.s, targetOrderId: data.i, copyOrderId: orderResp.orderId });
         });
         break;
       }
 
       if (data.o === 'LIMIT' && (data.x === 'CANCELED' || data.X === 'FILLED')) {
-        const pairIndex = limitOrderPair.findIndex(([targetOrder]) => targetOrder.orderId === data.i);
-        if (pairIndex === -1) break;
+        findLimitOrderPair({ symbol: data.s, targetOrderId: data.i })
+          .then(([pair]) => {
+            if (!pair) return;
 
-        const [[, copycatOrder]] = limitOrderPair.splice(pairIndex, 1);
-        console.log(`Order ${data.X}, Limit Order Pair`);
-        console.log(JSON.stringify(limitOrderPair));
-
-        if (data.x === 'CANCELED') cancelOrderFromEvent({ s: copycatOrder.symbol, i: copycatOrder.orderId });
+            deleteLimitOrderPair({ symbol: data.s, targetOrderId: data.i });
+            if (data.x === 'CANCELED') cancelOrderFromEvent({ s: pair.symbol, i: pair.copy_order_id });
+          });
         break;
       }
 
@@ -371,12 +394,12 @@ const onCopycatAccountMessage = (msg) => {
   switch (data.e) {
     case 'executionReport':
       if (data.o === 'LIMIT' && (data.x === 'CANCELED' || data.X === 'FILLED')) {
-        const pairIndex = limitOrderPair.findIndex(([, copycatOrder]) => copycatOrder.orderId === data.i);
-        if (pairIndex === -1) break;
+        findLimitOrderPair({ symbol: data.s, copyOrderId: data.i })
+          .then(([pair]) => {
+            if (!pair) return;
 
-        limitOrderPair.splice(pairIndex, 1);
-        console.log(`Order ${data.X}, Limit Order Pair`);
-        console.log(JSON.stringify(limitOrderPair));
+            deleteLimitOrderPair({ symbol: data.s, copyOrderId: data.i });
+          });
       }
 
       break;
@@ -388,6 +411,17 @@ const onCopycatAccountMessage = (msg) => {
   }
 };
 
+const initDb = async () => {
+  await dbClient.connect();
+  await dbClient.query(`CREATE TABLE IF NOT EXISTS limit_order_pairs (
+    id varchar(10) NOT NULL,
+    target_order_id integer NOT NULL,
+    copy_order_id integer NOT NULL,
+    symbol varchar(20) NOT NULL,
+    PRIMARY KEY (id)
+  )`);
+};
+
 const run = async () => {
   const { data: { serverTime } } = await axios.get('https://api.binance.com/api/v3/time');
   binanceTime.adjustTimeDiff(serverTime);
@@ -395,7 +429,8 @@ const run = async () => {
   await Promise.all([
     binanceSymbol.fetchSymbols(),
     targetAccountBalance.fetchBalances(),
-    copycatAccountBalance.fetchBalances()
+    copycatAccountBalance.fetchBalances(),
+    initDb()
   ]);
 
   // eslint-disable-next-line no-new

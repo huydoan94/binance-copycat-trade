@@ -22,7 +22,10 @@
     "logdna": "^3.5.2",
     "moment": "^2.24.0",
     "moment-timezone": "^0.5.27",
+    "pg": "^8.5.1",
+    "pg-native": "^3.0.0",
     "regenerator-runtime": "^0.13.5",
+    "shortid": "^2.2.16",
     "ws": "^7.4.2"
   },
   "devDependencies": {

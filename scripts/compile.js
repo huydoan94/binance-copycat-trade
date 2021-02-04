@@ -16,7 +16,6 @@ const copyFileAsync = promisify(fs.copyFile);
 module.exports = promisify(rimraf)(buildPath)
   .then(() => promisify(fs.mkdir)(buildPath))
   .then(() => copyFileAsync(path.join(srcPath, 'index.html'), path.join(buildPath, 'index.html')))
-  .then(() => copyFileAsync(path.join(srcPath, 'tokens.conf'), path.join(buildPath, 'tokens.conf')))
   .then(() => new Promise((resolve, reject) => webpack(
     webpackConfig,
     (err, stat) => err || stat.hasErrors() ? reject(err || stat.toString()) : resolve(stat)
