@@ -20,7 +20,10 @@ const dbUrl = process.env.DATABASE_URL;
 
 const targetAccount = JSON.parse(envTargetAccount);
 const copyCatBot = JSON.parse(envCopycatAccount);
-const dbClient = new DbClient(dbUrl);
+const dbClient = new DbClient({
+  connectionString: dbUrl,
+  ssl: { rejectUnauthorized: false }
+});
 
 if (logdnaKey) {
   const logger = Logger.createLogger(logdnaKey, {
