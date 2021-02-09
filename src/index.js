@@ -166,8 +166,8 @@ class BinanceWebSocket {
     this.socketClient.close();
   }
 
-  closeHandler = (e) => {
-    console.log(`[${this.id}]Socket closed: ${e.reason}`);
+  closeHandler = (evt) => {
+    console.log(`[${this.id}]Socket closed: ${JSON.stringify(evt)}`);
 
     clearTimeout(this.pingTimeout);
     clearTimeout(this.pingWaitTimeout);
@@ -308,7 +308,7 @@ const cancelOrderFromEvent = async (event) => {
     );
     console.log(`Cancel Order Done: ${params}`);
   } catch (e) {
-    console.error(`Delete Order Failed: ${e.response.data}`);
+    console.error(`Cancel Order Failed: ${JSON.stringify(e.response.data)}`);
   }
 
   return result;
