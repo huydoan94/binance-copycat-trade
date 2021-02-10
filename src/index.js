@@ -187,6 +187,31 @@ class BinanceWebSocket {
   }
 }
 
+class EventMessageManager {
+  messageStack = []
+  executor = noop
+  isExecuting = false
+
+  constructor (executor) {
+    this.executor = executor || this.executor;
+  }
+
+  onReceiveMessage = msg => {
+    this.messageStack.push(msg);
+    if (!this.isExecuting) this.executeMessageStack();
+  }
+
+  executeMessageStack = async () => {
+    this.isExecuting = true;
+
+    const msg = this.messageStack.shift();
+    if (msg) return this.executor(msg).then(this.executeMessageStack);
+
+    this.isExecuting = false;
+    return null;
+  }
+}
+
 const binanceTime = new BinanceTime();
 const binanceSymbol = new BinanceSymbol();
 const targetAccountBalance = new AccountBalance(targetAccount.key, targetAccount.secret);
@@ -304,7 +329,7 @@ const cancelOrderFromEvent = async (event) => {
   return result;
 };
 
-const onTargetAccountMessage = (msg) => {
+const onTargetAccountMessage = async (msg) => {
   const data = JSON.parse(msg);
 
   switch (data.e) {
@@ -320,11 +345,12 @@ const onTargetAccountMessage = (msg) => {
 
         const percentage = (Number(data.q) * Number(data.p)) / targetAsset.free;
         const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage) / Number(data.p);
-        createOrderFromEvent({ ...data, q: orderQuantity })
+        await createOrderFromEvent({ ...data, q: orderQuantity })
           .then(({ data: orderResp }) => {
             if (!orderResp) return;
             return createLimitOrderPair({ symbol: data.s, targetOrderId: data.i, copyOrderId: orderResp.orderId });
           });
+
         break;
       }
 
@@ -335,21 +361,24 @@ const onTargetAccountMessage = (msg) => {
 
         const percentage = Number(data.q) / targetAsset.free;
         const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage);
-        createOrderFromEvent({ ...data, q: orderQuantity }).then(({ data: orderResp }) => {
+        await createOrderFromEvent({ ...data, q: orderQuantity }).then(({ data: orderResp }) => {
           if (!orderResp) return;
           return createLimitOrderPair({ symbol: data.s, targetOrderId: data.i, copyOrderId: orderResp.orderId });
         });
+
         break;
       }
 
       if (data.o === 'LIMIT' && (data.x === 'CANCELED' || data.X === 'FILLED')) {
-        findLimitOrderPair({ symbol: data.s, targetOrderId: data.i })
+        await findLimitOrderPair({ symbol: data.s, targetOrderId: data.i })
           .then(([pair]) => {
             if (!pair) return;
 
-            deleteLimitOrderPair({ symbol: data.s, targetOrderId: data.i });
-            if (data.x === 'CANCELED') cancelOrderFromEvent({ s: pair.symbol, i: pair.copy_order_id });
+            const wait = [deleteLimitOrderPair({ symbol: data.s, targetOrderId: data.i })];
+            if (data.x === 'CANCELED') wait.push(cancelOrderFromEvent({ s: pair.symbol, i: pair.copy_order_id }));
+            return Promise.all(wait);
           });
+
         break;
       }
 
@@ -360,7 +389,8 @@ const onTargetAccountMessage = (msg) => {
 
         const percentage = Number(data.Z) / targetAsset.free;
         const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage);
-        createOrderFromEvent({ ...data, Q: orderQuantity });
+        await createOrderFromEvent({ ...data, Q: orderQuantity });
+
         break;
       }
 
@@ -371,7 +401,7 @@ const onTargetAccountMessage = (msg) => {
 
         const percentage = Number(data.q) / targetAsset.free;
         const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage);
-        createOrderFromEvent({ ...data, q: orderQuantity });
+        await createOrderFromEvent({ ...data, q: orderQuantity });
       }
 
       break;
@@ -384,13 +414,13 @@ const onTargetAccountMessage = (msg) => {
   }
 };
 
-const onCopycatAccountMessage = (msg) => {
+const onCopycatAccountMessage = async (msg) => {
   const data = JSON.parse(msg);
 
   switch (data.e) {
     case 'executionReport':
       if (data.o === 'LIMIT' && (data.x === 'CANCELED' || data.X === 'FILLED')) {
-        deleteLimitOrderPair({ symbol: data.s, copyOrderId: data.i });
+        await deleteLimitOrderPair({ symbol: data.s, copyOrderId: data.i });
       }
 
       break;
@@ -424,10 +454,13 @@ const run = async () => {
     initDb()
   ]);
 
+  const targetMessageManager = new EventMessageManager(onTargetAccountMessage);
+  const copycatMessageManager = new EventMessageManager(onCopycatAccountMessage);
+
   // eslint-disable-next-line no-new
-  new BinanceWebSocket(targetAccount.key, onTargetAccountMessage);
+  new BinanceWebSocket(targetAccount.key, targetMessageManager.onReceiveMessage);
   // eslint-disable-next-line no-new
-  new BinanceWebSocket(copyCatBot.key, onCopycatAccountMessage);
+  new BinanceWebSocket(copyCatBot.key, copycatMessageManager.onReceiveMessage);
 };
 
 run();
