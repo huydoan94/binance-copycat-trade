@@ -32,18 +32,8 @@ if (logdnaKey) {
     env: process.env.NODE_ENV
   });
 
-  const origConsoleLog = console.log;
-  const origConsoleError = console.error;
-
-  console.log = (msg) => {
-    logger.log(msg);
-    origConsoleLog(msg);
-  };
-
-  console.error = (msg) => {
-    logger.error(msg);
-    origConsoleError(msg);
-  };
+  console.log = logger.log;
+  console.error = logger.error;
 }
 
 class BinanceTime {
