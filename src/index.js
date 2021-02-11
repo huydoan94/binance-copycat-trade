@@ -26,7 +26,8 @@ const dbClient = new DbClient({
 });
 
 if (logdnaKey) {
-  const logger = Logger.createLogger(logdnaKey, {
+  const [key] = JSON.parse(logdnaKey);
+  const logger = Logger.createLogger(key, {
     hostname: 'binance-copycat-trade',
     app: 'binance-copycat-trade',
     env: process.env.NODE_ENV
