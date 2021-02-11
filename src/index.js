@@ -7,7 +7,7 @@ import axios from 'axios';
 import WebSocket from 'ws';
 import { noop, memoize } from 'lodash';
 import Logger from 'logdna';
-import { Client as DbClient } from 'pg';
+import { Pool as DbClient } from 'pg';
 import shortid from 'shortid';
 
 import { getHash } from './utils/hash-helper';
@@ -437,7 +437,6 @@ const onCopycatAccountMessage = async (msg) => {
 };
 
 const initDb = async () => {
-  await dbClient.connect();
   await dbClient.query(`CREATE TABLE IF NOT EXISTS limit_order_pairs (
     id varchar(10) NOT NULL,
     target_order_id integer NOT NULL,
