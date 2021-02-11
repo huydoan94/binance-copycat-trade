@@ -205,7 +205,10 @@ class EventMessageManager {
     this.isExecuting = true;
 
     const msg = this.messageStack.shift();
-    if (msg) return this.executor(msg).then(this.executeMessageStack);
+    if (msg) {
+      await this.executor(msg);
+      return this.executeMessageStack();
+    }
 
     this.isExecuting = false;
     return null;
