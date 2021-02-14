@@ -4,8 +4,11 @@ import 'regenerator-runtime/runtime';
 import path from 'path';
 import express from 'express';
 import Logger from 'logdna';
+import axios from 'axios';
 
 import binnaceTradeRunner from './binance-trade-index';
+
+axios.defaults.baseURL = 'https://api.binance.com/api/v3';
 
 const logdnaKey = process.env.LOGDNA_KEY;
 
