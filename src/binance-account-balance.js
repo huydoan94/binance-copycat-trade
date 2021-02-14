@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-import binanceTime from './BinanceTime';
+import binanceTime from './binance-time';
 
 import { getHash } from './utils/hash';
 
