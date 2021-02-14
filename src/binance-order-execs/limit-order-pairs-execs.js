@@ -31,11 +31,11 @@ export const deleteLimitOrderPair = async ({ symbol, targetOrderId, copyOrderId 
   if (copyOrderId) orderParam = ' ' + `AND copy_order_id=${copyOrderId}`;
   if (!symbol || !orderParam) return;
 
-  console.warn(`Deleting limit order pair: ${JSON.stringify({ symbol, targetOrderId, copyOrderId })}`);
   await dbClient
     .query(`DELETE FROM limit_order_pairs WHERE symbol='${symbol}'${orderParam}`)
     .then(({ rowCount }) => {
       if (!rowCount) return;
+      console.warn(`Deleting limit order pair: ${JSON.stringify({ symbol, targetOrderId, copyOrderId })}`);
       console.log(`Deleted limit order pair: ${JSON.stringify({ symbol, targetOrderId, copyOrderId })}`);
     })
     .catch(() => null);
