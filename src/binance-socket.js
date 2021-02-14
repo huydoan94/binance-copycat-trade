@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { noop } from 'lodash';
-import WebSocket from 'ws';
+import WebSocket from 'isomorphic-ws';
 
 const getAccountListenKey = async (key) => {
   const { data: { listenKey: targetListenKey } } = await axios.post(
@@ -30,22 +30,24 @@ export default class BinanceSocket {
   createSocketClient = async () => {
     const targetListenKey = await getAccountListenKey(this.key);
     this.socketClient = new WebSocket(`wss://stream.binance.com:9443/ws/${targetListenKey}`);
-    this.socketClient.on('open', this.openHandler);
-    this.socketClient.on('message', this.messageHandler);
-    this.socketClient.on('error', this.errorHandler);
-    this.socketClient.on('close', this.closeHandler);
-    this.socketClient.on('ping', this.pingPongHandler);
-    this.socketClient.on('pong', this.pingPongHandler);
+    this.socketClient.addEventListener('open', this.openHandler);
+    this.socketClient.addEventListener('message', this.messageHandlerParser);
+    this.socketClient.addEventListener('error', this.errorHandler);
+    this.socketClient.addEventListener('close', this.closeHandler);
+    this.socketClient.addEventListener('ping', this.pingPongHandler);
+    this.socketClient.addEventListener('pong', this.pingPongHandler);
   }
 
   openHandler = () => {
-    console.log(`[${this.id}]Socket opened`);
+    console.log(`[${this.id}]Socket opened.`);
     this.setPingTimeout();
   }
 
-  errorHandler = (err) => {
-    console.error(`[${this.id}]Socket error: ${err.message}`);
-    this.socketClient.close();
+  messageHandlerParser = (evt) => this.messageHandler(evt.data)
+
+  errorHandler = () => {
+    console.error(`[${this.id}]Socket error!`);
+    this.socketClient.close(4000);
   }
 
   closeHandler = (evt) => {
