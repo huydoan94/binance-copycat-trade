@@ -16,6 +16,7 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.21.1",
+    "bufferutil": "^4.0.3",
     "core-js": "^3.6.4",
     "express": "^4.17.1",
     "isomorphic-ws": "^4.0.1",
@@ -27,6 +28,7 @@
     "pg-native": "^3.0.0",
     "regenerator-runtime": "^0.13.5",
     "shortid": "^2.2.16",
+    "utf-8-validate": "^5.0.4",
     "ws": "^7.4.2"
   },
   "devDependencies": {
