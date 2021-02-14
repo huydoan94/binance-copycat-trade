@@ -1,4 +1,5 @@
-var CaseSensitivePathsPlugin = require('case-sensitive-paths-webpack-plugin');
+const ESLintPlugin = require('eslint-webpack-plugin');
+const CaseSensitivePathsPlugin = require('case-sensitive-paths-webpack-plugin');
 
 module.exports = (env, buildPath) => {
   return {
@@ -14,6 +15,7 @@ module.exports = (env, buildPath) => {
       __filename: false
     },
     plugins: [
+      new ESLintPlugin(),
       new CaseSensitivePathsPlugin()
     ],
     module: {
@@ -28,9 +30,11 @@ module.exports = (env, buildPath) => {
       ]
     },
     watch: env !== 'production',
-    watchOptions: env !== 'production' ? {
-      aggregateTimeout: 300,
-      ignored: ['node_modules', 'scripts/**', 'configs/**', 'build/**']
-    } : undefined
+    watchOptions: env !== 'production'
+      ? {
+          aggregateTimeout: 300,
+          ignored: ['node_modules', 'scripts/**', 'configs/**', 'build/**']
+        }
+      : undefined
   };
 };

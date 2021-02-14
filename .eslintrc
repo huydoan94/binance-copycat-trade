@@ -3,7 +3,7 @@
     "node": true
   },
   "extends": ["eslint:recommended", "standard"],
-  "parser": "babel-eslint",
+  "parser": "@babel/eslint-parser",
   "plugins": [
     "flowtype"
   ],
