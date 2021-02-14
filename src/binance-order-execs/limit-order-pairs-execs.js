@@ -16,6 +16,8 @@ export const findLimitOrderPair = async ({ symbol, targetOrderId, copyOrderId })
 
 export const createLimitOrderPair = async ({ symbol, targetOrderId, copyOrderId }) => {
   if (!symbol || !targetOrderId || !copyOrderId) return;
+
+  console.warn(`Creating limit order pair: ${JSON.stringify({ symbol, targetOrderId, copyOrderId })}`);
   await dbClient
     .query(`INSERT INTO limit_order_pairs (id, target_order_id, copy_order_id, symbol)
             VALUES ('${shortid.generate()}', ${targetOrderId}, ${copyOrderId}, '${symbol}')`)
@@ -29,6 +31,7 @@ export const deleteLimitOrderPair = async ({ symbol, targetOrderId, copyOrderId 
   if (copyOrderId) orderParam = ' ' + `AND copy_order_id=${copyOrderId}`;
   if (!symbol || !orderParam) return;
 
+  console.warn(`Deleting limit order pair: ${JSON.stringify({ symbol, targetOrderId, copyOrderId })}`);
   await dbClient
     .query(`DELETE FROM limit_order_pairs WHERE symbol='${symbol}'${orderParam}`)
     .then(({ rowCount }) => {

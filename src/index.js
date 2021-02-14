@@ -20,8 +20,9 @@ if (logdnaKey) {
     env: process.env.NODE_ENV
   });
 
-  console.log = msg => logger.log(msg);
+  console.log = msg => logger.info(msg);
   console.error = err => logger.error(err);
+  console.warn = msg => logger.warn(msg);
 }
 
 binnaceTradeRunner();

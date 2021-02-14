@@ -32,7 +32,7 @@ export const createOrderFromEvent = async (event, { key, secret }) => {
       `&timestamp=${today}`;
   }
 
-  console.log(`Create Order: ${params}`);
+  console.warn(`Create Order: ${params}`);
   const sig = getHash(params, secret);
   let result = {};
   try {
@@ -43,7 +43,7 @@ export const createOrderFromEvent = async (event, { key, secret }) => {
     );
     console.log(`Create Order Done: ${params}`);
   } catch (e) {
-    console.error(`Create Order Failed: ${JSON.stringify(e.response.data)}`);
+    console.error(`Create Order Failed: ${JSON.stringify({ params, resp: e.response.data })}`);
   }
 
   return result;
@@ -53,7 +53,8 @@ export const cancelOrderFromEvent = async (event, { key, secret }) => {
   const today = binanceTime.getToday();
   const params = `symbol=${event.s}&orderId=${event.i}` +
     `&timestamp=${today}`;
-  console.log(`Cancel Order: ${params}`);
+
+  console.warn(`Cancel Order: ${params}`);
   const sig = getHash(params, secret);
   let result = {};
   try {
@@ -63,7 +64,7 @@ export const cancelOrderFromEvent = async (event, { key, secret }) => {
     );
     console.log(`Cancel Order Done: ${params}`);
   } catch (e) {
-    console.error(`Cancel Order Failed: ${JSON.stringify(e.response.data)}`);
+    console.error(`Cancel Order Failed: ${JSON.stringify({ params, resp: e.response.data })}`);
   }
 
   return result;

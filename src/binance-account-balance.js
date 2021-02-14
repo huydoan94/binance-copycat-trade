@@ -35,7 +35,6 @@ export default class AccountBalance {
   }
 
   adjustAccountBalanceFromEvent = (event = []) => {
-    console.log(`[${this.id}] Adjust Balances Start`);
     event.forEach(e => {
       const convertedEvent = { asset: e.a, free: Number(e.f), locked: Number(e.l) };
       const index = this.balances.findIndex(b => b.asset === e.a);
