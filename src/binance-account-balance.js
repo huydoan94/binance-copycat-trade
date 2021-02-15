@@ -35,15 +35,37 @@ export default class AccountBalance {
   }
 
   adjustAccountBalanceFromEvent = (event = []) => {
+    const msg = {};
+
     event.forEach(e => {
       const convertedEvent = { asset: e.a, free: Number(e.f), locked: Number(e.l) };
       const index = this.balances.findIndex(b => b.asset === e.a);
-      if (index === -1) this.balances.push(convertedEvent);
-      else this.balances[index] = convertedEvent;
+      if (index === -1) {
+        const currBalance = convertedEvent.free + convertedEvent.locked;
+
+        if (currBalance !== 0) {
+          msg[convertedEvent.asset] = `0 => ${currBalance}`;
+        }
+
+        this.balances.push(convertedEvent);
+      } else {
+        const prevBalance = this.balances[index].free + this.balances[index].locked;
+        const currBalance = convertedEvent.free + convertedEvent.locked;
+
+        if (prevBalance !== currBalance || this.balances[index].locked !== convertedEvent.locked) {
+          msg[convertedEvent.asset] = `${prevBalance} => ${currBalance}` +
+            (this.balances[index].locked !== convertedEvent.locked &&
+              prevBalance === currBalance
+              ? ` (${convertedEvent.locked} locked)`
+              : '');
+        }
+
+        this.balances[index] = convertedEvent;
+      }
     });
 
     this.balances = this.balances.filter(b => b.free > 0 || b.locked > 0);
-    console.log(`[${this.id}] Adjust Balances: ${JSON.stringify(this.balances)}`);
+    console.log(`[${this.id}] Adjust Balances: ${JSON.stringify(msg)}`);
   }
 
   getAsset = (coin) => {
