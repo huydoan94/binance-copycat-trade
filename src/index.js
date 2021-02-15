@@ -5,14 +5,12 @@ import path from 'path';
 import express from 'express';
 import Logger from 'logdna';
 import axios from 'axios';
-import { keyBy, forEach } from 'lodash';
 
 import binnaceTradeRunner from './binance-trade-index';
-
-import BinanceSocket from './binance-socket';
+import binanceHelper, { getTickerHandler } from './binance-helpers';
 
 axios.defaults.baseURL = 'https://api.binance.com/api/v3';
-
+const app = express();
 const logdnaKey = process.env.LOGDNA_KEY;
 
 if (logdnaKey) {
@@ -29,24 +27,8 @@ if (logdnaKey) {
 }
 
 binnaceTradeRunner();
+binanceHelper();
 
-let aggTickerPrice = {};
-(async () => {
-  const { data: symbolPrices } = await axios.get('/ticker/price');
-  aggTickerPrice = keyBy(symbolPrices, 'symbol');
-
-  new BinanceSocket(null, (msg) => {
-    const data = JSON.parse(msg);
-    forEach(data, d => {
-      aggTickerPrice[d.s] = { symbol: d.s, price: d.c };
-    });
-  }, '!miniTicker@arr');
-})();
-
-const app = express();
-app.get('/ticker-price/:ticker', (req, res) => {
-  const ticker = aggTickerPrice[req.params.ticker];
-  res.json(ticker || {});
-});
+app.get('/ticker-price/:ticker', getTickerHandler);
 app.get('*', (_, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.listen(process.env.PORT || 3000);
