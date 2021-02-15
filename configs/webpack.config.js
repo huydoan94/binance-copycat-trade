@@ -1,4 +1,3 @@
-const ESLintPlugin = require('eslint-webpack-plugin');
 const CaseSensitivePathsPlugin = require('case-sensitive-paths-webpack-plugin');
 
 module.exports = (env, buildPath) => {
@@ -15,7 +14,6 @@ module.exports = (env, buildPath) => {
       __filename: false
     },
     plugins: [
-      new ESLintPlugin(),
       new CaseSensitivePathsPlugin()
     ],
     module: {

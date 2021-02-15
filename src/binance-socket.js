@@ -18,17 +18,29 @@ export default class BinanceSocket {
   pingTimeout = null
   pingWaitTimeout = null
   id = null
+  socketUrl = null
 
-  constructor (key, messageHandler) {
-    this.key = key;
+  constructor (key, messageHandler, socketUrl) {
+    if (key) {
+      this.key = key;
+      this.id = key.slice(-5);
+    }
+
+    if (socketUrl) {
+      this.socketUrl = socketUrl;
+      this.id = socketUrl;
+    }
+
     this.messageHandler = messageHandler;
-    this.id = key.slice(-5);
 
     this.createSocketClient();
   }
 
   createSocketClient = async () => {
-    const targetListenKey = await getAccountListenKey(this.key);
+    let targetListenKey;
+    if (this.key) targetListenKey = await getAccountListenKey(this.key);
+    else targetListenKey = this.socketUrl;
+
     this.socketClient = new WebSocket(`wss://stream.binance.com:9443/ws/${targetListenKey}`);
     this.socketClient.addEventListener('open', this.openHandler);
     this.socketClient.addEventListener('message', this.messageHandlerParser);
