@@ -7,13 +7,9 @@ import binanceTime from './binance-time';
 import binanceSymbol from './binance-symbol';
 import dbClient from './postgres-db-client';
 
-import calculateFromPercentage from './binance-order-execs/calc-from-percentage';
-import { createOrderFromEvent, cancelOrderFromEvent } from './binance-order-execs/order-execs';
-import {
-  findLimitOrderPair,
-  createLimitOrderPair,
-  deleteLimitOrderPair
-} from './binance-order-execs/limit-order-pairs-execs';
+import { deleteLimitOrderPair } from './binance-order-execs/limit-order-pairs-execs';
+import { onLimitOrderAction } from './target-account-actions/limit-order-actions';
+import { onMarketOrderAction } from './target-account-actions/market-order-actions';
 
 const envTargetAccount = process.env.TARGET_ACCOUNT;
 const envCopycatAccount = process.env.COPYCAT_ACCOUNT;
@@ -33,71 +29,26 @@ const onTargetAccountMessage = async (msg) => {
 
       const { baseAsset, quoteAsset } = binanceSymbol.getSymbolData(data.s);
 
-      if (data.o === 'LIMIT' && data.S === 'BUY' && data.x === 'NEW') {
-        const targetAsset = targetAccountBalance.getAsset(quoteAsset);
-        const copyCatAsset = copycatAccountBalance.getAsset(quoteAsset);
-        if (!targetAsset || !copyCatAsset || targetAsset.free === 0 || copyCatAsset.free === 0) break;
-
-        const percentage = (Number(data.q) * Number(data.p)) / targetAsset.free;
-        const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage) / Number(data.p);
-        await createOrderFromEvent({ ...data, q: orderQuantity }, copyCatBot)
-          .then(({ data: orderResp }) => {
-            if (!orderResp) return;
-            return createLimitOrderPair({ symbol: data.s, targetOrderId: data.i, copyOrderId: orderResp.orderId });
-          });
-
-        break;
+      if (data.o === 'LIMIT') {
+        await onLimitOrderAction({
+          data,
+          quoteAsset,
+          baseAsset,
+          targetAccountBalance,
+          copycatAccountBalance,
+          copyCatBot
+        });
       }
 
-      if (data.o === 'LIMIT' && data.S === 'SELL' && data.x === 'NEW') {
-        const targetAsset = targetAccountBalance.getAsset(baseAsset);
-        const copyCatAsset = copycatAccountBalance.getAsset(baseAsset);
-        if (!targetAsset || !copyCatAsset || targetAsset.free === 0 || copyCatAsset.free === 0) break;
-
-        const percentage = Number(data.q) / targetAsset.free;
-        const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage);
-        await createOrderFromEvent({ ...data, q: orderQuantity }, copyCatBot)
-          .then(({ data: orderResp }) => {
-            if (!orderResp) return;
-            return createLimitOrderPair({ symbol: data.s, targetOrderId: data.i, copyOrderId: orderResp.orderId });
-          });
-
-        break;
-      }
-
-      if (data.o === 'LIMIT' && (data.x === 'CANCELED' || data.X === 'FILLED')) {
-        await findLimitOrderPair({ symbol: data.s, targetOrderId: data.i })
-          .then(([pair]) => {
-            if (!pair) return;
-
-            const wait = [deleteLimitOrderPair({ symbol: data.s, targetOrderId: data.i })];
-            if (data.x === 'CANCELED') wait.push(cancelOrderFromEvent({ ...data, i: pair.copy_order_id }, copyCatBot));
-            return Promise.all(wait);
-          });
-
-        break;
-      }
-
-      if (data.o === 'MARKET' && data.S === 'BUY' && data.X === 'FILLED') {
-        const targetAsset = targetAccountBalance.getAsset(quoteAsset);
-        const copyCatAsset = copycatAccountBalance.getAsset(quoteAsset);
-        if (!targetAsset || !copyCatAsset || targetAsset.free === 0 || copyCatAsset.free === 0) break;
-
-        const percentage = Number(data.Z) / targetAsset.free;
-        const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage);
-        await createOrderFromEvent({ ...data, Q: orderQuantity }, copyCatBot);
-
-        break;
-      }
-
-      if (data.o === 'MARKET' && data.S === 'SELL' && data.X === 'FILLED') {
-        const targetAsset = targetAccountBalance.getAsset(baseAsset);
-        const copyCatAsset = copycatAccountBalance.getAsset(baseAsset);
-        if (!targetAsset || !copyCatAsset || targetAsset.free === 0 || copyCatAsset.free === 0) break;
-
-        const percentage = Number(data.q) / targetAsset.free;
-        const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage);
-        await createOrderFromEvent({ ...data, q: orderQuantity }, copyCatBot);
+      if (data.o === 'MARKET') {
+        await onMarketOrderAction({
+          data,
+          quoteAsset,
+          baseAsset,
+          targetAccountBalance,
+          copycatAccountBalance,
+          copyCatBot
+        });
       }
 
       break;
