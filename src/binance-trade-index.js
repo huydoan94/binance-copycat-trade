@@ -25,8 +25,6 @@ const onTargetAccountMessage = async (msg) => {
 
   switch (data.e) {
     case 'executionReport': {
-      if (!['NEW', 'TRADE', 'CANCELED'].includes(data.x)) break;
-
       const { baseAsset, quoteAsset } = binanceSymbol.getSymbolData(data.s);
 
       if (data.o === 'LIMIT') {
