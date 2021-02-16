@@ -43,7 +43,7 @@ export const createOrderFromEvent = async (event, { key, secret }) => {
     );
     console.log(`Create Order Done: ${params}`);
   } catch (e) {
-    console.error(`Create Order Failed: ${JSON.stringify({ params, resp: e.response.data })}`);
+    console.error(`Create Order Failed: ${JSON.stringify(e.response.data)}`);
   }
 
   return result;
@@ -64,7 +64,7 @@ export const cancelOrderFromEvent = async (event, { key, secret }) => {
     );
     console.log(`Cancel Order Done: ${params}`);
   } catch (e) {
-    console.error(`Cancel Order Failed: ${JSON.stringify({ params, resp: e.response.data })}`);
+    console.error(`Cancel Order Failed: ${JSON.stringify(e.response.data)}`);
   }
 
   return result;
