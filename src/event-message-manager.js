@@ -19,7 +19,7 @@ export default class EventMessageManager {
 
     const msg = this.messageStack.shift();
     if (msg) {
-      await this.executor(msg);
+      try { await this.executor(msg); } catch (err) {}
       return this.executeMessageStack();
     }
 
