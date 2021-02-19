@@ -56,18 +56,23 @@ export default class BinanceSocket {
 
   closeHandler = ({ code }) => {
     console.log(`[${this.id}]Socket closed with code: ${code}`);
-    clearTimeout(this.pingWaitTimeout);
-    clearTimeout(this.pingServerTimeout);
+    this.clearAllPingTimeout();
     setTimeout(this.createSocketClient, 1000);
   }
 
   pongHandler = () => {
-    clearTimeout(this.pingWaitTimeout);
+    this.clearAllPingTimeout();
     this.pingServerTimeout = setTimeout(this.pingServer, 15000);
   }
 
   pingServer = () => {
+    this.clearAllPingTimeout();
     this.pingWaitTimeout = setTimeout(() => this.socketClient.close(), 15000);
     this.socketClient.ping();
+  }
+
+  clearAllPingTimeout = () => {
+    clearTimeout(this.pingWaitTimeout);
+    clearTimeout(this.pingServerTimeout);
   }
 }
