@@ -13,6 +13,8 @@ export default class BinanceSocket {
   socketUrl = null
   socketClient = null
   messageHandler = noop
+  pingServerTimeout = null
+  pingWaitTimeout = null
 
   constructor (key, messageHandler, socketUrl) {
     if (key) {
@@ -39,10 +41,13 @@ export default class BinanceSocket {
     this.socketClient.addEventListener('open', this.openHandler);
     this.socketClient.addEventListener('message', this.messageHandlerParser);
     this.socketClient.addEventListener('close', this.closeHandler);
+
+    this.socketClient.addEventListener('pong', this.pongHandler);
   }
 
   openHandler = () => {
     console.log(`[${this.id}]Socket opened.`);
+    this.pingServer();
   }
 
   messageHandlerParser = (evt) => {
@@ -51,6 +56,18 @@ export default class BinanceSocket {
 
   closeHandler = ({ code }) => {
     console.log(`[${this.id}]Socket closed with code: ${code}`);
+    clearTimeout(this.pingWaitTimeout);
+    clearTimeout(this.pingServerTimeout);
     setTimeout(this.createSocketClient, 1000);
+  }
+
+  pongHandler = () => {
+    clearTimeout(this.pingWaitTimeout);
+    this.pingServerTimeout = setTimeout(this.pingServer, 15000);
+  }
+
+  pingServer = () => {
+    this.pingWaitTimeout = setTimeout(() => this.socketClient.close(), 15000);
+    this.socketClient.ping();
   }
 }
