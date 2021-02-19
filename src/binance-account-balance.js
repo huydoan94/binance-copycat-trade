@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { isEmpty } from 'lodash';
 
 import binanceTime from './binance-time';
 
@@ -41,23 +42,24 @@ export default class AccountBalance {
       const convertedEvent = { asset: e.a, free: Number(e.f), locked: Number(e.l) };
       const index = this.balances.findIndex(b => b.asset === e.a);
       if (index === -1) {
-        const currBalance = convertedEvent.free + convertedEvent.locked;
-
-        if (currBalance !== 0) {
-          msg[convertedEvent.asset] = `0 => ${currBalance}`;
+        if (convertedEvent.free !== 0 || convertedEvent.locked !== 0) {
+          msg[convertedEvent.asset] = `0 => ${convertedEvent.free}` + (
+            convertedEvent.locked !== 0 ? ` (locked 0 => ${convertedEvent.locked})` : ''
+          );
         }
 
         this.balances.push(convertedEvent);
       } else {
-        const prevBalance = this.balances[index].free + this.balances[index].locked;
-        const currBalance = convertedEvent.free + convertedEvent.locked;
-
-        if (prevBalance !== currBalance || this.balances[index].locked !== convertedEvent.locked) {
-          msg[convertedEvent.asset] = `${prevBalance} => ${currBalance}` +
-            (this.balances[index].locked !== convertedEvent.locked &&
-              prevBalance === currBalance
-              ? ` (${convertedEvent.locked} locked)`
-              : '');
+        if (
+          this.balances[index].free !== convertedEvent.free ||
+          this.balances[index].locked !== convertedEvent.locked
+        ) {
+          msg[convertedEvent.asset] = `${this.balances[index].free} => ${convertedEvent.free}` +
+            (
+              this.balances[index].locked !== convertedEvent.locked
+                ? ` (locked ${this.balances[index].locked} => ${convertedEvent.locked})`
+                : ''
+            );
         }
 
         this.balances[index] = convertedEvent;
@@ -65,7 +67,7 @@ export default class AccountBalance {
     });
 
     this.balances = this.balances.filter(b => b.free > 0 || b.locked > 0);
-    console.log(`[${this.id}] Adjust Balances: ${JSON.stringify(msg)}`);
+    if (!isEmpty(msg)) console.log(`[${this.id}] Adjust Balances: ${JSON.stringify(msg)}`);
   }
 
   getAsset = (coin) => {
