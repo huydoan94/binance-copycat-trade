@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { noop } from 'lodash';
+import { noop, isEmpty } from 'lodash';
 import WebSocket from 'isomorphic-ws';
 
 const getAccountListenKey = async (key) => {
@@ -10,10 +10,10 @@ const getAccountListenKey = async (key) => {
 export default class BinanceSocket {
   id = null
   key = null
-  socketUrl = null
   socketClient = null
   messageHandler = noop
-  pingServerTimeout = null
+
+  pingTimeout = null
   pingWaitTimeout = null
 
   constructor (key, messageHandler, socketUrl) {
@@ -28,7 +28,6 @@ export default class BinanceSocket {
     }
 
     this.messageHandler = messageHandler;
-
     this.createSocketClient();
   }
 
@@ -37,42 +36,54 @@ export default class BinanceSocket {
     if (this.key) targetListenKey = await getAccountListenKey(this.key);
     else targetListenKey = this.socketUrl;
 
-    this.socketClient = new WebSocket(`wss://stream.binance.com:9443/ws/${targetListenKey}`);
-    this.socketClient.addEventListener('open', this.openHandler);
-    this.socketClient.addEventListener('message', this.messageHandlerParser);
-    this.socketClient.addEventListener('close', this.closeHandler);
+    if (isEmpty(targetListenKey)) return;
 
-    this.socketClient.addEventListener('pong', this.pongHandler);
+    this.socketClient = new WebSocket(`wss://stream.binance.com:9443/ws/${targetListenKey}`);
+    this.socketClient.on('open', this.openHandler);
+    this.socketClient.on('message', this.messageHandler);
+    this.socketClient.on('error', this.errorHandler);
+    this.socketClient.on('ping', this.pingPongHandler);
+    this.socketClient.on('pong', this.pingPongHandler);
+    this.socketClient.on('close', this.closeHandler);
   }
 
   openHandler = () => {
-    console.log(`[${this.id}]Socket opened.`);
-    this.pingServer();
+    console.log(`[${this.id}]Socket opened!`);
+    this.setPingTimeout();
   }
 
-  messageHandlerParser = (evt) => {
-    this.messageHandler(evt.data);
+  errorHandler = () => {
+    console.error(`[${this.id}]Socket error!`);
+    this.socketClient.close(4000);
   }
 
-  closeHandler = ({ code }) => {
+  closeHandler = (code) => {
     console.log(`[${this.id}]Socket closed with code: ${code}`);
-    this.clearAllPingTimeout();
-    setTimeout(this.createSocketClient, 1000);
+
+    clearTimeout(this.pingTimeout);
+    clearTimeout(this.pingWaitTimeout);
+    setTimeout(() => this.createSocketClient(), 1000);
+  };
+
+  pingPongHandler = () => {
+    clearTimeout(this.pingTimeout);
+    clearTimeout(this.pingWaitTimeout);
+
+    this.setPingTimeout();
   }
 
-  pongHandler = () => {
-    this.clearAllPingTimeout();
-    this.pingServerTimeout = setTimeout(this.pingServer, 15000);
-  }
-
-  pingServer = () => {
-    this.clearAllPingTimeout();
-    this.pingWaitTimeout = setTimeout(() => this.socketClient.close(), 15000);
+  ping = () => {
+    this.pingWaitTimeout = setTimeout(
+      () => this.socketClient.close(),
+      60 * 1000
+    );
     this.socketClient.ping();
   }
 
-  clearAllPingTimeout = () => {
-    clearTimeout(this.pingWaitTimeout);
-    clearTimeout(this.pingServerTimeout);
+  setPingTimeout = () => {
+    this.pingTimeout = setTimeout(
+      () => this.ping(),
+      5 * 60 * 1000
+    );
   }
 }

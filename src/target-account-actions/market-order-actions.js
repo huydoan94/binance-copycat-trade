@@ -1,8 +1,6 @@
 import { createOrderFromEvent } from '../binance-order-execs/order-execs';
 import calculateFromPercentage from '../binance-order-execs/calc-from-percentage';
 
-import isAssetFundAvailable from './check-asset-balance';
-
 const onBuyMarket = async ({
   data,
   quoteAsset,
@@ -12,7 +10,7 @@ const onBuyMarket = async ({
 }) => {
   const targetAsset = targetAccountBalance.getAsset(quoteAsset);
   const copyCatAsset = copycatAccountBalance.getAsset(quoteAsset);
-  if (!isAssetFundAvailable(targetAsset) || !isAssetFundAvailable(copyCatAsset)) return;
+  if (!targetAsset || !copyCatAsset || targetAsset.free === 0 || copyCatAsset.free === 0) return;
 
   const percentage = Number(data.Z) / targetAsset.free;
   const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage);
@@ -28,7 +26,7 @@ const onSellMarket = async ({
 }) => {
   const targetAsset = targetAccountBalance.getAsset(baseAsset);
   const copyCatAsset = copycatAccountBalance.getAsset(baseAsset);
-  if (!isAssetFundAvailable(targetAsset) || !isAssetFundAvailable(copyCatAsset)) return;
+  if (!targetAsset || !copyCatAsset || targetAsset.free === 0 || copyCatAsset.free === 0) return;
 
   const percentage = Number(data.q) / targetAsset.free;
   const orderQuantity = calculateFromPercentage(copyCatAsset.free, percentage);
@@ -44,7 +42,7 @@ export const onMarketOrderAction = async ({
   copyCatBot
 }) => {
   if (data.S === 'BUY' && data.X === 'FILLED') {
-    await onBuyMarket({
+    return onBuyMarket({
       data,
       quoteAsset,
       baseAsset,
@@ -55,7 +53,7 @@ export const onMarketOrderAction = async ({
   }
 
   if (data.S === 'SELL' && data.X === 'FILLED') {
-    await onSellMarket({
+    return onSellMarket({
       data,
       quoteAsset,
       baseAsset,

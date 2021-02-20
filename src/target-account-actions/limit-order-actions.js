@@ -6,8 +6,6 @@ import {
 } from '../binance-order-execs/limit-order-pairs-execs';
 import calculateFromPercentage from '../binance-order-execs/calc-from-percentage';
 
-import isAssetFundAvailable from './check-asset-balance';
-
 const onBuyLimit = async ({
   data,
   targetAccountBalance,
@@ -17,7 +15,7 @@ const onBuyLimit = async ({
 }) => {
   const targetAsset = targetAccountBalance.getAsset(quoteAsset);
   const copycatAsset = copycatAccountBalance.getAsset(quoteAsset);
-  if (!isAssetFundAvailable(targetAsset) || !isAssetFundAvailable(copycatAsset)) return;
+  if (!targetAsset || !copycatAsset || targetAsset.free === 0 || copycatAsset.free === 0) return;
 
   const percentage = (Number(data.q) * Number(data.p)) / targetAsset.free;
   const orderQuantity = calculateFromPercentage(copycatAsset.free, percentage) / Number(data.p);
@@ -36,7 +34,7 @@ const onSellLimit = async ({
 }) => {
   const targetAsset = targetAccountBalance.getAsset(baseAsset);
   const copycatAsset = copycatAccountBalance.getAsset(baseAsset);
-  if (!isAssetFundAvailable(targetAsset) || !isAssetFundAvailable(copycatAsset)) return;
+  if (!targetAsset || !copycatAsset || targetAsset.free === 0 || copycatAsset.free === 0) return;
 
   const percentage = Number(data.q) / targetAsset.free;
   const orderQuantity = calculateFromPercentage(copycatAsset.free, percentage);
@@ -67,7 +65,7 @@ export const onLimitOrderAction = async ({
   copyCatBot
 }) => {
   if (data.S === 'BUY' && data.x === 'NEW') {
-    await onBuyLimit({
+    return onBuyLimit({
       data,
       quoteAsset,
       baseAsset,
@@ -78,7 +76,7 @@ export const onLimitOrderAction = async ({
   }
 
   if (data.S === 'SELL' && data.x === 'NEW') {
-    await onSellLimit({
+    return onSellLimit({
       data,
       quoteAsset,
       baseAsset,
@@ -89,7 +87,7 @@ export const onLimitOrderAction = async ({
   }
 
   if (data.x === 'CANCELED' || data.X === 'FILLED') {
-    await onCancelLimit({
+    return onCancelLimit({
       data,
       quoteAsset,
       baseAsset,

@@ -7,7 +7,7 @@ import Logger from 'logdna';
 import axios from 'axios';
 
 import binnaceTradeRunner from './binance-trade-index';
-import binanceHelper, { getTickerHandler } from './binance-helpers';
+import binanceHelperRunner, { getTickerHandler } from './binance-helpers';
 
 axios.defaults.baseURL = 'https://api.binance.com/api/v3';
 const app = express();
@@ -27,7 +27,7 @@ if (logdnaKey) {
 }
 
 binnaceTradeRunner();
-binanceHelper();
+binanceHelperRunner();
 
 app.get('/ticker-price/:ticker', getTickerHandler);
 app.get('*', (_, res) => res.sendFile(path.join(__dirname, 'index.html')));
