@@ -10,6 +10,8 @@ import binnaceTradeRunner from './binance-trade-index';
 import binanceHelperRunner, { getTickerHandler } from './binance-helpers';
 
 axios.defaults.baseURL = 'https://api.binance.com/api/v3';
+axios.defaults.timeout = 5000;
+
 const app = express();
 const logdnaKey = process.env.LOGDNA_KEY;
 
