@@ -18,12 +18,17 @@ export default class EventMessageManager {
     this.isExecuting = true;
 
     const msg = this.messageStack.shift();
-    if (msg) {
-      try { await this.executor(msg); } catch (err) {}
-      return this.executeMessageStack();
+    if (!msg) {
+      this.isExecuting = false;
+      return 'done';
     }
 
-    this.isExecuting = false;
-    return null;
+    try {
+      await this.executor(msg);
+    } catch (err) {
+      console.log(`Execute message error: ${err.message}`);
+    }
+
+    return this.executeMessageStack();
   }
 }

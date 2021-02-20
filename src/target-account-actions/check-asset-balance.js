@@ -1,5 +1,3 @@
-const isAssetFundAvailable = (asset) => {
-  return asset && asset.free > 0;
-};
+const isAssetFundAvailable = asset => asset && asset.free > 0;
 
 export default isAssetFundAvailable;
