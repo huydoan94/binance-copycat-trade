@@ -42,7 +42,7 @@ export const onMarketOrderAction = async ({
   copyCatBot
 }) => {
   if (data.S === 'BUY' && data.X === 'FILLED') {
-    return onBuyMarket({
+    await onBuyMarket({
       data,
       quoteAsset,
       baseAsset,
@@ -53,7 +53,7 @@ export const onMarketOrderAction = async ({
   }
 
   if (data.S === 'SELL' && data.X === 'FILLED') {
-    return onSellMarket({
+    await onSellMarket({
       data,
       quoteAsset,
       baseAsset,

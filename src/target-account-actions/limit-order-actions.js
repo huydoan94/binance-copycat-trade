@@ -65,7 +65,7 @@ export const onLimitOrderAction = async ({
   copyCatBot
 }) => {
   if (data.S === 'BUY' && data.x === 'NEW') {
-    return onBuyLimit({
+    await onBuyLimit({
       data,
       quoteAsset,
       baseAsset,
@@ -76,7 +76,7 @@ export const onLimitOrderAction = async ({
   }
 
   if (data.S === 'SELL' && data.x === 'NEW') {
-    return onSellLimit({
+    await onSellLimit({
       data,
       quoteAsset,
       baseAsset,
@@ -87,7 +87,7 @@ export const onLimitOrderAction = async ({
   }
 
   if (data.x === 'CANCELED' || data.X === 'FILLED') {
-    return onCancelLimit({
+    await onCancelLimit({
       data,
       quoteAsset,
       baseAsset,
