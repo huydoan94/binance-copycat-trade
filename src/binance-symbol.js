@@ -12,7 +12,7 @@ export class BinanceSymbol {
     if (this.firstRun) console.log('Get symbols');
     try {
       const { data = {} } = await axios.get('/exchangeInfo');
-      const symbols = (data.symbols || []);
+      const symbols = data.symbols || this.symbols;
 
       const isUpdated = this.symbols.length !== symbols.length ||
         differenceWith(this.symbols, symbols, isEqual).length > 0 ||
