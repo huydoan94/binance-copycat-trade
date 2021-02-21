@@ -1,24 +1,33 @@
 import axios from 'axios';
-import { memoize } from 'lodash';
+import { memoize, differenceWith, isEqual } from 'lodash';
 
 export class BinanceSymbol {
   symbols = []
   fetchSymbolsTimeout = null
-  showConsole = true
+  firstRun = true
 
   fetchSymbols = async () => {
     clearTimeout(this.fetchSymbolsTimeout);
 
-    if (this.showConsole) console.log('Get symbols');
+    if (this.firstRun) console.log('Get symbols');
     try {
       const { data = {} } = await axios.get('/exchangeInfo');
-      this.symbols = (data.symbols || []);
-      if (this.showConsole) console.log(`Symbol def count: ${this.symbols.length}`);
+      const symbols = (data.symbols || []);
+
+      const isUpdated = this.symbols.length !== symbols.length ||
+        differenceWith(this.symbols, symbols, isEqual).length > 0 ||
+        differenceWith(symbols, this.symbols, isEqual).length > 0;
+      if (isUpdated) {
+        this.getSymbolData.cache.clear();
+        console.log(`Symbol def updated: ${symbols.length}`);
+      }
+
+      this.symbols = symbols;
     } catch (e) {
       console.error(`Symbols get fail: ${JSON.stringify(e.response.data)}`);
     }
 
-    this.showConsole = false;
+    this.firstRun = false;
     this.fetchSymbolsTimeout = setTimeout(this.fetchSymbols, 30 * 60 * 1000);
   }
 
