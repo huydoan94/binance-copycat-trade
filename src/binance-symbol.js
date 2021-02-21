@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { memoize, differenceWith, isEqual } from 'lodash';
+import { memoize, xorWith, isEqual, forEach, uniqBy } from 'lodash';
 
 export class BinanceSymbol {
   symbols = []
@@ -14,12 +14,11 @@ export class BinanceSymbol {
       const { data = {} } = await axios.get('/exchangeInfo');
       const symbols = data.symbols || this.symbols;
 
-      const isUpdated = this.symbols.length !== symbols.length ||
-        differenceWith(this.symbols, symbols, isEqual).length > 0 ||
-        differenceWith(symbols, this.symbols, isEqual).length > 0;
-      if (isUpdated) {
-        this.getSymbolData.cache.clear();
-        console.log(`Symbol def updated: ${symbols.length}`);
+      let diff = xorWith(this.symbols, symbols, isEqual);
+      diff = uniqBy(diff, 'symbol');
+      if (diff.length > 0) {
+        forEach(diff, s => { this.getSymbolData.cache.delete(s.symbol); });
+        console.log(`Symbol def updated: ${diff.length}`);
       }
 
       this.symbols = symbols;
