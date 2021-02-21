@@ -5,6 +5,7 @@ import binanceSymbol from '../binance-symbol';
 
 import { floorWithPrecision } from '../utils/math';
 import { getHash } from '../utils/hash';
+import { searchParamToJson } from '../utils/url';
 
 export const createOrderFromEvent = async (event, { key, secret }) => {
   const today = binanceTime.getToday();
@@ -32,7 +33,10 @@ export const createOrderFromEvent = async (event, { key, secret }) => {
       `&timestamp=${today}`;
   }
 
-  console.warn(`Create Order: ${params}`);
+  const paramJson = searchParamToJson(params);
+  delete paramJson.timestamp;
+
+  console.warn(`Create Order: ${JSON.stringify(paramJson)}`);
   const sig = getHash(params, secret);
   let result = {};
   try {
@@ -41,9 +45,9 @@ export const createOrderFromEvent = async (event, { key, secret }) => {
       undefined,
       { headers: { 'X-MBX-APIKEY': key } }
     );
-    console.log(`Create Order Done: ${params}`);
+    console.log(`Create Order Done: ${JSON.stringify(paramJson)}`);
   } catch (e) {
-    console.error(`Create Order Failed: ${JSON.stringify(e.response.data)}`);
+    console.error(`Create Order Failed: ${JSON.stringify({ ...e.response.data, params: paramJson })}`);
   }
 
   return result;
@@ -53,8 +57,10 @@ export const cancelOrderFromEvent = async (event, { key, secret }) => {
   const today = binanceTime.getToday();
   const params = `symbol=${event.s}&orderId=${event.i}` +
     `&timestamp=${today}`;
+  const paramJson = searchParamToJson(params);
+  delete paramJson.timestamp;
 
-  console.warn(`Cancel Order: ${params}`);
+  console.warn(`Cancel Order: ${JSON.stringify(paramJson)}`);
   const sig = getHash(params, secret);
   let result = {};
   try {
@@ -62,9 +68,9 @@ export const cancelOrderFromEvent = async (event, { key, secret }) => {
       `/order?${params}&signature=${sig}`,
       { headers: { 'X-MBX-APIKEY': key } }
     );
-    console.log(`Cancel Order Done: ${params}`);
+    console.log(`Cancel Order Done: ${JSON.stringify(paramJson)}`);
   } catch (e) {
-    console.error(`Cancel Order Failed: ${JSON.stringify(e.response.data)}`);
+    console.error(`Cancel Order Failed: ${JSON.stringify({ ...e.response.data, params: paramJson })}`);
   }
 
   return result;
