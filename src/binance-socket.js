@@ -42,9 +42,16 @@ export default class BinanceSocket {
     this.socketClient.addEventListener('close', this.closeHandler);
   }
 
+  restartSocket = () => {
+    console.log(`[${this.id}]Restarting socket ...`);
+    this.socketClient.close(4001);
+  }
+
   openHandler = () => {
     console.log(`[${this.id}]Socket opened!`);
-    this.socketServerCycleTimeout = setTimeout(() => this.socketClient.close(), 60 * 60 * 1000);
+
+    const restartWait = (this.key ? 30 : (20 * 60)) * 60 * 1000;
+    this.socketServerCycleTimeout = setTimeout(this.restartSocket, restartWait);
   }
 
   messageHandlerParser = (evt) => {
