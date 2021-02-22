@@ -18,10 +18,10 @@ export class BinanceSymbol {
       diff = uniqBy(diff, 'symbol');
       if (diff.length > 0) {
         forEach(diff, s => { this.getSymbolData.cache.delete(s.symbol); });
-        console.log(`Symbol def updated: ${diff.length}`);
+        this.symbols = symbols;
       }
 
-      this.symbols = symbols;
+      if (this.firstRun) console.log(`Symbol def updated: ${this.symbols.length}`);
     } catch (e) {
       console.error(`Symbols get fail: ${JSON.stringify(e.response.data)}`);
     }
