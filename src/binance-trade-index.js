@@ -7,9 +7,11 @@ import binanceTime from './binance-time';
 import binanceSymbol from './binance-symbol';
 import dbClient from './postgres-db-client';
 
-import { deleteLimitOrderPair } from './binance-order-execs/limit-order-pairs-execs';
+import { deleteOrderPair } from './binance-order-execs/order-pairs-execs';
 import { onLimitOrderAction } from './target-account-actions/limit-order-actions';
 import { onMarketOrderAction } from './target-account-actions/market-order-actions';
+import { onStopLimitOrderAction } from './target-account-actions/stop-limit-order-actions';
+import { onOcoOrderAction } from './target-account-actions/oco-order-actions';
 
 const envTargetAccount = process.env.TARGET_ACCOUNT;
 const envCopycatAccount = process.env.COPYCAT_ACCOUNT;
@@ -26,6 +28,28 @@ const onTargetAccountMessage = async (msg) => {
   switch (data.e) {
     case 'executionReport': {
       const { baseAsset, quoteAsset } = binanceSymbol.getSymbolData(data.s);
+
+      if (data.g !== -1) {
+        await onOcoOrderAction({
+          data,
+          quoteAsset,
+          baseAsset,
+          targetAccountBalance,
+          copycatAccountBalance,
+          copyCatBot
+        });
+      }
+
+      if (['TAKE_PROFIT_LIMIT', 'STOP_LOSS_LIMIT'].includes(data.o) && data.g === -1) {
+        await onStopLimitOrderAction({
+          data,
+          quoteAsset,
+          baseAsset,
+          targetAccountBalance,
+          copycatAccountBalance,
+          copyCatBot
+        });
+      }
 
       if (data.o === 'LIMIT') {
         await onLimitOrderAction({
@@ -65,7 +89,11 @@ const onCopycatAccountMessage = async (msg) => {
   switch (data.e) {
     case 'executionReport':
       if (data.o === 'LIMIT' && (data.x === 'CANCELED' || data.X === 'FILLED')) {
-        await deleteLimitOrderPair({ symbol: data.s, copyOrderId: data.i });
+        await deleteOrderPair({ symbol: data.s, copyOrderId: data.i });
+      }
+
+      if (data.g !== -1 && (data.x === 'CANCELED' || data.X === 'FILLED')) {
+        await deleteOrderPair({ symbol: data.s, copyOrderId: data.g, isOco: true });
       }
 
       break;
@@ -78,13 +106,16 @@ const onCopycatAccountMessage = async (msg) => {
 };
 
 const initDb = async () => {
-  await dbClient.query(`CREATE TABLE IF NOT EXISTS limit_order_pairs (
-    id varchar(10) NOT NULL,
-    target_order_id integer NOT NULL,
-    copy_order_id integer NOT NULL,
-    symbol varchar(20) NOT NULL,
-    PRIMARY KEY (id)
-  )`);
+  const queryPromise = ['limit_order_pairs', 'oco_order_pairs'].map(table =>
+    dbClient.query(`CREATE TABLE IF NOT EXISTS ${table} (
+      id varchar(10) NOT NULL,
+      target_order_id integer NOT NULL,
+      copy_order_id integer NOT NULL,
+      symbol varchar(20) NOT NULL,
+      PRIMARY KEY (id)
+    )`)
+  );
+  await Promise.all(queryPromise);
 };
 
 const runner = async () => {

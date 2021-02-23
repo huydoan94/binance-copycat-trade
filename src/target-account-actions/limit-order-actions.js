@@ -1,9 +1,9 @@
 import { createOrderFromEvent, cancelOrderFromEvent } from '../binance-order-execs/order-execs';
 import {
-  findLimitOrderPair,
-  createLimitOrderPair,
-  deleteLimitOrderPair
-} from '../binance-order-execs/limit-order-pairs-execs';
+  findOrderPair,
+  createOrderPair,
+  deleteOrderPair
+} from '../binance-order-execs/order-pairs-execs';
 import calculateFromPercentage from '../binance-order-execs/calc-from-percentage';
 
 const onBuyLimit = async ({
@@ -22,7 +22,7 @@ const onBuyLimit = async ({
   const { data: orderResp } = await createOrderFromEvent({ ...data, q: orderQuantity }, copyCatBot);
 
   if (!orderResp) return;
-  await createLimitOrderPair({ symbol: data.s, targetOrderId: data.i, copyOrderId: orderResp.orderId });
+  await createOrderPair({ symbol: data.s, targetOrderId: data.i, copyOrderId: orderResp.orderId });
 };
 
 const onSellLimit = async ({
@@ -41,17 +41,17 @@ const onSellLimit = async ({
   const { data: orderResp } = await createOrderFromEvent({ ...data, q: orderQuantity }, copyCatBot);
 
   if (!orderResp) return;
-  await createLimitOrderPair({ symbol: data.s, targetOrderId: data.i, copyOrderId: orderResp.orderId });
+  await createOrderPair({ symbol: data.s, targetOrderId: data.i, copyOrderId: orderResp.orderId });
 };
 
 const onCancelLimit = async ({
   data,
   copyCatBot
 }) => {
-  const [pair] = await findLimitOrderPair({ symbol: data.s, targetOrderId: data.i });
+  const [pair] = await findOrderPair({ symbol: data.s, targetOrderId: data.i });
   if (!pair) return;
 
-  const wait = [deleteLimitOrderPair({ symbol: data.s, targetOrderId: data.i })];
+  const wait = [deleteOrderPair({ symbol: data.s, targetOrderId: data.i })];
   if (data.x === 'CANCELED') wait.push(cancelOrderFromEvent({ ...data, i: pair.copy_order_id }, copyCatBot));
   await Promise.all(wait);
 };
