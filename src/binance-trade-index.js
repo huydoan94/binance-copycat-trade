@@ -30,7 +30,7 @@ const onTargetAccountMessage = async (msg) => {
       const { baseAsset, quoteAsset } = binanceSymbol.getSymbolData(data.s);
 
       if (data.g !== -1) {
-        await onOcoOrderAction({
+        return await onOcoOrderAction({
           data,
           quoteAsset,
           baseAsset,
@@ -40,7 +40,7 @@ const onTargetAccountMessage = async (msg) => {
         });
       }
 
-      if (['TAKE_PROFIT_LIMIT', 'STOP_LOSS_LIMIT'].includes(data.o) && data.g === -1) {
+      if (['TAKE_PROFIT_LIMIT', 'STOP_LOSS_LIMIT'].includes(data.o)) {
         await onStopLimitOrderAction({
           data,
           quoteAsset,
