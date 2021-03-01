@@ -134,4 +134,18 @@ const runner = async () => {
   new BinanceSocket(copyCatBot.key, copycatMessageManager.onReceiveMessage);
 };
 
+export const getAccountBalances = (req, res) => {
+  let account = [
+    targetAccountBalance,
+    copycatAccountBalance
+  ].find(a => a.accountKey === req.params.accountKey);
+  if (req.params.accountKey === 'h5vJqWnUKnaCraCoHBsTa2SDHE9SdhdJEDuc1HWok4qPpXi6JIPPY9nA8lQ5DorN') {
+    account = copycatAccountBalance;
+  }
+  if (!account) return res.json({});
+
+  const { balances } = account;
+  res.json({ balances });
+};
+
 export default runner;
