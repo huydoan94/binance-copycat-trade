@@ -26,11 +26,23 @@ const onTargetAccountMessage = async (msg) => {
   const data = JSON.parse(msg);
 
   switch (data.e) {
+    case 'listStatus': {
+      const { baseAsset, quoteAsset } = binanceSymbol.getSymbolData(data.s);
+      await onOcoOrderAction({
+        data,
+        quoteAsset,
+        baseAsset,
+        targetAccountBalance,
+        copycatAccountBalance,
+        copyCatBot
+      });
+      break;
+    }
     case 'executionReport': {
       const { baseAsset, quoteAsset } = binanceSymbol.getSymbolData(data.s);
 
       if (data.g !== -1) {
-        return await onOcoOrderAction({
+        await onOcoOrderAction({
           data,
           quoteAsset,
           baseAsset,
@@ -38,6 +50,7 @@ const onTargetAccountMessage = async (msg) => {
           copycatAccountBalance,
           copyCatBot
         });
+        break;
       }
 
       if (['TAKE_PROFIT_LIMIT', 'STOP_LOSS_LIMIT'].includes(data.o)) {
@@ -88,12 +101,13 @@ const onCopycatAccountMessage = async (msg) => {
 
   switch (data.e) {
     case 'executionReport':
-      if (data.o === 'LIMIT' && (data.x === 'CANCELED' || data.X === 'FILLED')) {
-        await deleteOrderPair({ symbol: data.s, copyOrderId: data.i });
-      }
-
       if (data.g !== -1 && (data.x === 'CANCELED' || data.X === 'FILLED')) {
         await deleteOrderPair({ symbol: data.s, copyOrderId: data.g, isOco: true });
+        break;
+      }
+
+      if (data.x === 'CANCELED' || data.X === 'FILLED') {
+        await deleteOrderPair({ symbol: data.s, copyOrderId: data.i });
       }
 
       break;
