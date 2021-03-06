@@ -7,7 +7,7 @@ import Logger from 'logdna';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 
-import binnaceTradeRunner, { getAccountBalances } from './binance-trade-index';
+import binnaceTradeRunner from './binance-trade-index';
 import binanceHelperRunner, { getTickerHandler } from './binance-helpers';
 
 axiosRetry(axios, {
@@ -40,7 +40,6 @@ if (logdnaKey) {
 binnaceTradeRunner();
 binanceHelperRunner();
 
-app.get('/account-balance/:accountKey', getAccountBalances);
 app.get('/ticker-price/:ticker', getTickerHandler);
 app.get('*', (_, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.listen(process.env.PORT || 3000);
