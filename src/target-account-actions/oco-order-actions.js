@@ -85,10 +85,6 @@ const onCreateOcoOrder = async ({
 
 const onCancelOcoOrder = async ({
   data,
-  quoteAsset,
-  baseAsset,
-  targetAccountBalance,
-  copycatAccountBalance,
   copyCatBot
 }) => {
   const [pair] = await findOrderPair({ symbol: data.s, targetOrderId: data.g, isOco: true });
