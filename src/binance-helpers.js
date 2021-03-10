@@ -21,4 +21,8 @@ export const getTickerHandler = (req, res) => {
   res.json(ticker || {});
 };
 
+export const getAllTickersHandler = (req, res) => {
+  res.json(Object.values(aggTickerPrice));
+};
+
 export default run;

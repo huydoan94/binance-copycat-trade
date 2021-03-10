@@ -8,7 +8,7 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 
 import binnaceTradeRunner from './binance-trade-index';
-import binanceHelperRunner, { getTickerHandler } from './binance-helpers';
+import binanceHelperRunner, { getAllTickersHandler, getTickerHandler } from './binance-helpers';
 
 axiosRetry(axios, {
   retryDelay: (count, error) => {
@@ -41,5 +41,6 @@ binnaceTradeRunner();
 binanceHelperRunner();
 
 app.get('/ticker-price/:ticker', getTickerHandler);
+app.get('/ticker-prices', getAllTickersHandler);
 app.get('*', (_, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.listen(process.env.PORT || 3000);
