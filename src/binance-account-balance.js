@@ -26,16 +26,20 @@ export default class AccountBalance {
         `/account?${params}&signature=${sig}`,
         { headers: { 'X-MBX-APIKEY': this.accountKey } }
       );
-      this.balances = (data.balances || [])
-        .map(b => ({ ...b, free: Number(b.free), locked: Number(b.locked) }))
-        .filter(b => b.free > 0 || b.locked > 0);
+      this.saveBalances((data.balances || []));
       console.log(`[${this.id}] Balances: ${JSON.stringify(this.balances)}`);
     } catch (e) {
       console.error(`[${this.id}] Balances get fail: ${JSON.stringify(e.response.data)}`);
     }
   }
 
-  adjustAccountBalanceFromEvent = (event = []) => {
+  saveBalances = (balances) => {
+    this.balances = balances
+      .map(b => ({ ...b, free: Number(b.free), locked: Number(b.locked) }))
+      .filter(b => b.free > 0 || b.locked > 0);
+  }
+
+  adjustAccountBalanceFromEvent = (event = [], disableLog) => {
     const msg = {};
 
     event.forEach(e => {
@@ -67,7 +71,7 @@ export default class AccountBalance {
     });
 
     this.balances = this.balances.filter(b => b.free > 0 || b.locked > 0);
-    if (!isEmpty(msg)) console.log(`[${this.id}] Adjust Balances: ${JSON.stringify(msg)}`);
+    if (!disableLog && !isEmpty(msg)) console.log(`[${this.id}] Adjust Balances: ${JSON.stringify(msg)}`);
   }
 
   getAsset = (coin) => {

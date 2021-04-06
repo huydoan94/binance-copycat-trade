@@ -15,7 +15,7 @@ export default class BinanceSocket {
   messageHandler = noop
 
   socketServerCycleTimeout = null
-  restartingSocket = false
+  forceRestart = false
 
   constructor (key, messageHandler, socketUrl) {
     if (key) {
@@ -48,8 +48,8 @@ export default class BinanceSocket {
   }
 
   openHandler = () => {
-    if (!this.restartingSocket) console.log(`[${this.id}]Socket opened!`);
-    this.restartingSocket = false;
+    if (!this.forceRestart) console.log(`[${this.id}]Socket opened!`);
+    this.forceRestart = false;
 
     const restartWait = (this.key ? 30 : (20 * 60)) * 60 * 1000;
     this.socketServerCycleTimeout = setTimeout(this.restartSocket, restartWait);
@@ -62,8 +62,10 @@ export default class BinanceSocket {
   closeHandler = ({ code }) => {
     clearTimeout(this.socketServerCycleTimeout);
 
-    if (code === 4990) this.restartingSocket = true;
+    if (code === 4990) this.forceRestart = true;
     else console.log(`[${this.id}]Socket closed with code: ${code}`);
+
+    if (code === 4991) return;
 
     setTimeout(this.createSocketClient, 1000);
   }
