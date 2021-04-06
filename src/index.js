@@ -45,6 +45,10 @@ if (logdnaKey) {
 binnaceTradeRunner();
 binanceHelperRunner();
 
+app.use('*', (req, res, next) => {
+  if (req.secure || req.headers['x-forwarded-proto'] === 'https') return next();
+  res.redirect(`https://${req.hostname}${req.originalUrl}`);
+});
 app.get('/ticker-price/:ticker', getTickerHandler);
 app.get('/ticker-prices', getAllTickersHandler);
 app.get('/account-data', getBinanceAccounHandler);
