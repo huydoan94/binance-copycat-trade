@@ -20,7 +20,6 @@
     "bufferutil": "^4.0.3",
     "core-js": "^3.6.4",
     "express": "^4.17.1",
-    "express-http-proxy": "^1.6.2",
     "isomorphic-ws": "^4.0.1",
     "lodash": "^4.17.15",
     "logdna": "^3.5.2",
