@@ -11,6 +11,7 @@ import binnaceTradeRunner from './binance-trade-index';
 import binanceHelperRunner, { getAllTickersHandler, getTickerHandler } from './binance-helpers';
 
 axiosRetry(axios, {
+  shouldResetTimeout: true,
   retryDelay: (count, error) => {
     if (error.response && [418, 429].includes(error.response.status)) {
       return Number(error.response.headers['Retry-After']) * 1000;
