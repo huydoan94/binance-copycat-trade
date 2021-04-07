@@ -9,20 +9,17 @@ const run = async () => {
   const { data: symbolPrices } = await axios.get('/ticker/price');
   aggTickerPrice = keyBy(symbolPrices, 'symbol');
 
-  new BinanceSocket(null, (msg) => {
-    const data = JSON.parse(msg);
-    forEach(data, d => {
-      aggTickerPrice[d.s] = { symbol: d.s, price: d.c };
-    });
-  }, '!miniTicker@arr');
+  const updateAggTickerPrice = d => { aggTickerPrice[d.s] = { symbol: d.s, price: d.c }; };
+  new BinanceSocket(null, (msg) => forEach(JSON.parse(msg), updateAggTickerPrice), '!miniTicker@arr');
 };
 
 export const getTickerHandler = (req, res) => {
-  const ticker = aggTickerPrice[req.params.ticker];
+  const pair = (req.params.ticker || '').replace(/[\W_]+/g, '').toUpperCase();
+  const ticker = aggTickerPrice[pair];
   res.json(ticker || {});
 };
 
-export const getAllTickersHandler = (req, res) => {
+export const getAllTickersHandler = (_, res) => {
   res.json(Object.values(aggTickerPrice));
 };
 
