@@ -52,6 +52,6 @@ app.use('*', (req, res, next) => {
 app.get('/ticker-price/:ticker', getTickerHandler);
 app.get('/ticker-prices', getAllTickersHandler);
 app.get('/account-data', getBinanceAccounHandler);
-app.get('/not-found', (_, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/not-found', (_, res) => res.status(404).sendFile(path.join(__dirname, 'index.html')));
 app.get('*', (req, res) => res.redirect(`https://${req.hostname}/not-found`));
 app.listen(process.env.PORT || 3000);
