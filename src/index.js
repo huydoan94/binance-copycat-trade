@@ -24,7 +24,7 @@ axiosRetry(axios, {
   }
 });
 axios.defaults.baseURL = 'https://api.binance.com/api/v3';
-axios.defaults.timeout = 15000;
+axios.defaults.timeout = 5 * 60 * 1000;
 
 const app = express();
 const logdnaKey = process.env.LOGDNA_KEY;
