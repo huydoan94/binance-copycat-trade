@@ -37,13 +37,14 @@ const accountBalanceDataTimeout = apiKey => () => {
     delete accountBalanceMap[apiKey];
   }
 };
+const setAccountBalanceDataTimeout = apiKey => setTimeout(accountBalanceDataTimeout(apiKey), 5 * 60 * 1000);
 export const getBinanceAccounHandler = async (req, res) => {
   const apiKey = req.get('X-MBX-APIKEY');
   if (isEmpty(apiKey)) return res.json([]);
 
   if (accountBalanceMap[apiKey]) {
     clearTimeout(accountBalanceMap[apiKey].dataTimeout);
-    accountBalanceMap[apiKey].dataTimeout = setTimeout(accountBalanceDataTimeout(apiKey), 5 * 60 * 1000);
+    accountBalanceMap[apiKey].dataTimeout = setAccountBalanceDataTimeout(apiKey);
     return res.json(accountBalanceMap[apiKey].storeData.balances);
   }
 
@@ -57,7 +58,9 @@ export const getBinanceAccounHandler = async (req, res) => {
     storeData.saveBalances((data.balances || []));
 
     const socket = new BinanceSocket(apiKey, accountBalanceSocketHandler(apiKey));
-    const dataTimeout = setTimeout(accountBalanceDataTimeout(apiKey), 5 * 60 * 1000);
+    socket.logging = false;
+
+    const dataTimeout = setAccountBalanceDataTimeout(apiKey);
     accountBalanceMap[apiKey] = { storeData, socket, dataTimeout };
     res.json(storeData.balances);
   } catch (e) {
