@@ -144,8 +144,8 @@ const runner = async () => {
   const targetMessageManager = new EventMessageManager(onTargetAccountMessage);
   const copycatMessageManager = new EventMessageManager(onCopycatAccountMessage);
 
-  new BinanceSocket(targetAccount.key, targetMessageManager.onReceiveMessage);
-  new BinanceSocket(copyCatBot.key, copycatMessageManager.onReceiveMessage);
+  new BinanceSocket({ key: targetAccount.key, messageHandler: targetMessageManager.onReceiveMessage });
+  new BinanceSocket({ key: copyCatBot.key, messageHandler: copycatMessageManager.onReceiveMessage });
 };
 
 export default runner;

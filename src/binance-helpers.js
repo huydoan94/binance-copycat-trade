@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { keyBy, forEach, isEmpty } from 'lodash';
 
 import BinanceSocket from './binance-socket';
@@ -6,11 +5,14 @@ import AccountBalance from './binance-account-balance';
 
 let aggTickerPrice = {};
 const run = async () => {
-  const { data: symbolPrices } = await axios.get('/ticker/price');
+  const { data: symbolPrices } = await global.spotApi.get('/ticker/price');
   aggTickerPrice = keyBy(symbolPrices, 'symbol');
 
   const updateAggTickerPrice = d => { aggTickerPrice[d.s] = { symbol: d.s, price: d.c }; };
-  new BinanceSocket(null, (msg) => forEach(JSON.parse(msg), updateAggTickerPrice), '!miniTicker@arr');
+  new BinanceSocket({
+    socketUrl: '!miniTicker@arr',
+    messageHandler: (msg) => forEach(JSON.parse(msg), updateAggTickerPrice)
+  });
 };
 
 export const getTickerHandler = (req, res) => {
@@ -50,14 +52,17 @@ export const getBinanceAccounHandler = async (req, res) => {
 
   try {
     const queryString = req.url.replace(/[^?]*/, '');
-    const { data } = await axios.get(
+    const { data } = await global.spotApi.get(
       `https://api.binance.com/api/v3/account${queryString}`,
       { headers: { 'X-MBX-APIKEY': apiKey } }
     );
     const storeData = new AccountBalance('');
     storeData.saveBalances((data.balances || []));
 
-    const socket = new BinanceSocket(apiKey, accountBalanceSocketHandler(apiKey));
+    const socket = new BinanceSocket({
+      key: apiKey,
+      messageHandler: accountBalanceSocketHandler(apiKey)
+    });
     socket.logging = false;
 
     const dataTimeout = setAccountBalanceDataTimeout(apiKey);

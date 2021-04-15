@@ -4,8 +4,8 @@ import 'regenerator-runtime/runtime';
 import path from 'path';
 import express from 'express';
 import Logger from 'logdna';
-import axios from 'axios';
-import axiosRetry from 'axios-retry';
+
+import { create } from './utils/axios';
 
 import binnaceTradeRunner from './binance-trade-index';
 import binanceHelperRunner, {
@@ -14,17 +14,8 @@ import binanceHelperRunner, {
   getBinanceAccounHandler
 } from './binance-helpers';
 
-axiosRetry(axios, {
-  shouldResetTimeout: true,
-  retryDelay: (count, error) => {
-    if (error.response && [418, 429].includes(error.response.status)) {
-      return Number(error.response.headers['Retry-After']) * 1000;
-    }
-    return axiosRetry.exponentialDelay(count);
-  }
-});
-axios.defaults.baseURL = 'https://api.binance.com/api/v3';
-axios.defaults.timeout = 5 * 60 * 1000;
+global.spotApi = create('https://api.binance.com/api/v3');
+global.futureApi = create('https://fapi.binance.com/fapi/v1');
 
 const app = express();
 const logdnaKey = process.env.LOGDNA_KEY;

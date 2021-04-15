@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { isEmpty } from 'lodash';
 
 import binanceTime from './binance-time';
@@ -22,7 +21,7 @@ export default class AccountBalance {
     const sig = getHash(params, this.accountSecret);
     try {
       console.log(`[${this.id}] Get balances`);
-      const { data = {} } = await axios.get(
+      const { data = {} } = await global.spotApi.get(
         `/account?${params}&signature=${sig}`,
         { headers: { 'X-MBX-APIKEY': this.accountKey } }
       );

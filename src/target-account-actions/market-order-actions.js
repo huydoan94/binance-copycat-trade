@@ -1,4 +1,4 @@
-import { createOrderFromEvent } from '../binance-order-execs/order-execs';
+import { createOrderFromEvent } from '../binance-order-execs/order-execs-spot';
 import calculateFromPercentage from '../binance-order-execs/calc-from-percentage';
 
 const onBuyMarket = async ({

@@ -1,4 +1,4 @@
-import { createOcoOrder, cancelOcoOrder } from '../binance-order-execs/order-execs';
+import { createOcoOrder, cancelOcoOrder } from '../binance-order-execs/order-execs-spot';
 import { findOrderPair, createOrderPair, deleteOrderPair } from '../binance-order-execs/order-pairs-execs';
 
 import calculateFromPercentage from '../binance-order-execs/calc-from-percentage';

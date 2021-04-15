@@ -1,5 +1,3 @@
-import axios from 'axios';
-
 import binanceTime from '../binance-time';
 import binanceSymbol from '../binance-symbol';
 
@@ -55,7 +53,7 @@ export const createOrderFromEvent = async (event, { key, secret }) => {
   const sig = getHash(params, secret);
   let result = null;
   try {
-    result = await axios.post(
+    result = await global.spotApi.post(
       `/order?${params}&signature=${sig}`,
       undefined,
       { headers: { 'X-MBX-APIKEY': key } }
@@ -79,7 +77,7 @@ export const cancelOrderFromEvent = async (event, { key, secret }) => {
   const sig = getHash(params, secret);
   let result = null;
   try {
-    result = await axios.delete(
+    result = await global.spotApi.delete(
       `/order?${params}&signature=${sig}`,
       { headers: { 'X-MBX-APIKEY': key } }
     );
@@ -117,7 +115,7 @@ export const createOcoOrder = async (data, { key, secret }) => {
   const sig = getHash(params, secret);
   let result = null;
   try {
-    result = await axios.post(
+    result = await global.spotApi.post(
       `/order/oco?${params}&signature=${sig}`,
       undefined,
       { headers: { 'X-MBX-APIKEY': key } }
@@ -141,7 +139,7 @@ export const cancelOcoOrder = async (event, { key, secret }) => {
   const sig = getHash(params, secret);
   let result = null;
   try {
-    result = await axios.delete(
+    result = await global.spotApi.delete(
       `/orderList?${params}&signature=${sig}`,
       { headers: { 'X-MBX-APIKEY': key } }
     );

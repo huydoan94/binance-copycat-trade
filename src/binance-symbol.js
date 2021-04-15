@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { memoize, xorWith, isEqual, forEach, uniqBy } from 'lodash';
 
 export class BinanceSymbol {
@@ -11,7 +10,7 @@ export class BinanceSymbol {
 
     if (this.firstRun) console.log('Get symbols');
     try {
-      const { data = {} } = await axios.get('/exchangeInfo');
+      const { data = {} } = await global.spotApi.get('/exchangeInfo');
       const symbols = data.symbols || this.symbols;
 
       let diff = xorWith(this.symbols, symbols, isEqual);

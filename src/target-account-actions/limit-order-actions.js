@@ -1,4 +1,4 @@
-import { createOrderFromEvent, cancelOrderFromEvent } from '../binance-order-execs/order-execs';
+import { createOrderFromEvent, cancelOrderFromEvent } from '../binance-order-execs/order-execs-spot';
 import {
   findOrderPair,
   createOrderPair,
