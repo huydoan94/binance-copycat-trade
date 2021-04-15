@@ -76,17 +76,20 @@ const appendFuturesAccountBalance = async (key, balances) => {
   const { data } = await fetchFutureBalance({ key: futureApiKey.key, sig, params });
 
   return data.reduce((balancesAcc, asset) => {
-    const withdrawAvailable = Number(asset.balance);
-    if (withdrawAvailable === 0) return balancesAcc;
+    const assetBalance = Number(asset.balance);
+    if (assetBalance === 0) return balancesAcc;
 
     const balanceIndex = balancesAcc.findIndex(a => a.asset === asset.asset);
     if (balanceIndex === -1) {
-      return [...balancesAcc, { asset: asset.asset, free: 0, locked: withdrawAvailable }];
+      return [...balancesAcc, { asset: asset.asset, free: 0, locked: assetBalance }];
     }
 
-    balancesAcc[balanceIndex].locked += withdrawAvailable;
+    balancesAcc[balanceIndex] = {
+      ...balancesAcc[balanceIndex],
+      locked: balancesAcc[balanceIndex].locked + assetBalance
+    };
     return balancesAcc;
-  }, balances);
+  }, [...balances]);
 };
 const setAccountBalanceDataTimeout = apiKey => setTimeout(accountBalanceDataTimeout(apiKey), 5 * 60 * 1000);
 export const getBinanceAccounHandler = async (req, res) => {
