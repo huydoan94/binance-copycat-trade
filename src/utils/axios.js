@@ -1,8 +1,8 @@
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 
-export const create = (baseUrl) => {
-  const axiosInstance = axios.create({ baseUrl, timeout: 5 * 60 * 1000 });
+export const create = (baseURL) => {
+  const axiosInstance = axios.create({ baseURL, timeout: 5 * 60 * 1000 });
   axiosRetry(axiosInstance, {
     shouldResetTimeout: true,
     retryDelay: (count, error) => {
