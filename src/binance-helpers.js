@@ -27,7 +27,30 @@ export const getAllTickersHandler = (_, res) => {
   res.json(Object.values(aggTickerPrice));
 };
 
+/**
+ * Account Balances Helper Functions
+ *
+ *
+ *
+ *
+ *
+ */
+
 const accountBalanceMap = {};
+const fetchFutureBalance = (() => {
+  const cache = {};
+  return ({ key, params, sig }) => {
+    const cacheValue = cache[key];
+    if (cacheValue && Date.now() - cacheValue.time < (60 * 1000)) return cacheValue.value;
+
+    const value = global.futureApi.get(
+      `/balance?${params}&signature=${sig}`,
+      { headers: { 'X-MBX-APIKEY': key } }
+    );
+    cache[key] = { value, time: Date.now() };
+    return value;
+  };
+})();
 const accountBalanceSocketHandler = apiKey => msg => {
   const data = JSON.parse(msg);
   if (data.e === 'outboundAccountPosition' && accountBalanceMap[apiKey]) {
@@ -50,13 +73,10 @@ const appendFuturesAccountBalance = async (key, balances) => {
 
   const params = `timestamp=${Date.now()}`;
   const sig = getHash(params, futureApiKey.secret);
-  const { data } = await global.futureApi.get(
-    `/balance?${params}&signature=${sig}`,
-    { headers: { 'X-MBX-APIKEY': futureApiKey.key } }
-  );
+  const { data } = await fetchFutureBalance({ key: futureApiKey.key, sig, params });
 
   return data.reduce((balancesAcc, asset) => {
-    const withdrawAvailable = Number(asset.withdrawAvailable);
+    const withdrawAvailable = Number(asset.balance);
     if (withdrawAvailable === 0) return balancesAcc;
 
     const balanceIndex = balancesAcc.findIndex(a => a.asset === asset.asset);
