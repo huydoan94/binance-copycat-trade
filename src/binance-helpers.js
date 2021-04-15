@@ -3,6 +3,8 @@ import { keyBy, forEach, isEmpty } from 'lodash';
 import BinanceSocket from './binance-socket';
 import AccountBalance from './binance-account-balance';
 
+import { getHash } from './utils/hash';
+
 let aggTickerPrice = {};
 const run = async () => {
   const { data: symbolPrices } = await global.spotApi.get('/ticker/price');
@@ -39,6 +41,33 @@ const accountBalanceDataTimeout = apiKey => () => {
     delete accountBalanceMap[apiKey];
   }
 };
+const appendFuturesAccountBalance = async (key, balances) => {
+  let futureApiKeys = process.env.FUTURE_APIS || '[]';
+  futureApiKeys = JSON.parse(futureApiKeys);
+
+  const futureApiKey = futureApiKeys.find(pair => pair.spotKeys.some(k => k === key));
+  if (!futureApiKey) return balances;
+
+  const params = `timestamp=${Date.now()}`;
+  const sig = getHash(params, futureApiKey.secret);
+  const { data } = await global.futureApi.get(
+    `/balance?${params}&signature=${sig}`,
+    { headers: { 'X-MBX-APIKEY': futureApiKey.key } }
+  );
+
+  return data.reduce((balancesAcc, asset) => {
+    const withdrawAvailable = Number(asset.withdrawAvailable);
+    if (withdrawAvailable === 0) return balancesAcc;
+
+    const balanceIndex = balancesAcc.findIndex(a => a.asset === asset.asset);
+    if (balanceIndex === -1) {
+      return [...balancesAcc, { asset: asset.asset, free: 0, locked: withdrawAvailable }];
+    }
+
+    balancesAcc[balanceIndex].locked += withdrawAvailable;
+    return balancesAcc;
+  }, balances);
+};
 const setAccountBalanceDataTimeout = apiKey => setTimeout(accountBalanceDataTimeout(apiKey), 5 * 60 * 1000);
 export const getBinanceAccounHandler = async (req, res) => {
   const apiKey = req.get('X-MBX-APIKEY');
@@ -47,15 +76,14 @@ export const getBinanceAccounHandler = async (req, res) => {
   if (accountBalanceMap[apiKey]) {
     clearTimeout(accountBalanceMap[apiKey].dataTimeout);
     accountBalanceMap[apiKey].dataTimeout = setAccountBalanceDataTimeout(apiKey);
-    return res.json(accountBalanceMap[apiKey].storeData.balances);
+
+    const balances = await appendFuturesAccountBalance(apiKey, accountBalanceMap[apiKey].storeData.balances);
+    return res.json(balances);
   }
 
   try {
     const queryString = req.url.replace(/[^?]*/, '');
-    const { data } = await global.spotApi.get(
-      `https://api.binance.com/api/v3/account${queryString}`,
-      { headers: { 'X-MBX-APIKEY': apiKey } }
-    );
+    const { data } = await global.spotApi.get(`/account${queryString}`, { headers: { 'X-MBX-APIKEY': apiKey } });
     const storeData = new AccountBalance('');
     storeData.saveBalances((data.balances || []));
 
@@ -67,7 +95,9 @@ export const getBinanceAccounHandler = async (req, res) => {
 
     const dataTimeout = setAccountBalanceDataTimeout(apiKey);
     accountBalanceMap[apiKey] = { storeData, socket, dataTimeout };
-    res.json(storeData.balances);
+
+    const balances = await appendFuturesAccountBalance(apiKey, storeData.balances);
+    res.json(balances);
   } catch (e) {
     res.json([]);
   }
