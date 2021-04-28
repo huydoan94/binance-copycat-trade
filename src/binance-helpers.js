@@ -1,4 +1,4 @@
-import { keyBy, forEach, isEmpty } from 'lodash';
+import { keyBy, forEach, isEmpty, map } from 'lodash';
 
 import BinanceSocket from './binance-socket';
 import AccountBalance from './binance-account-balance';
@@ -13,18 +13,19 @@ const run = async () => {
   const updateAggTickerPrice = d => { aggTickerPrice[d.s] = { symbol: d.s, price: d.c }; };
   new BinanceSocket({
     socketUrl: '!miniTicker@arr',
-    messageHandler: (msg) => forEach(JSON.parse(msg), updateAggTickerPrice)
+    messageHandler: msg => forEach(JSON.parse(msg), updateAggTickerPrice)
   });
 };
 
 export const getTickerHandler = (req, res) => {
   const pair = (req.params.ticker || '').replace(/[\W_]+/g, '').toUpperCase();
-  const ticker = aggTickerPrice[pair];
-  res.json(ticker || {});
+  const ticker = aggTickerPrice[pair] || {};
+  if (ticker.price) ticker.price = Number(ticker.price);
+  res.json(ticker);
 };
 
 export const getAllTickersHandler = (_, res) => {
-  res.json(Object.values(aggTickerPrice));
+  res.json(map(aggTickerPrice, ({ price, ...v }) => ({ ...v, price: Number(price) })));
 };
 
 /**
