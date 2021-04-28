@@ -1,3 +1,4 @@
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const CaseSensitivePathsPlugin = require('case-sensitive-paths-webpack-plugin');
 
 module.exports = (env, buildPath) => {
@@ -14,6 +15,9 @@ module.exports = (env, buildPath) => {
       __filename: false
     },
     plugins: [
+      new CopyWebpackPlugin({
+        patterns: [{ from: 'public', to: buildPath }]
+      }),
       new CaseSensitivePathsPlugin()
     ],
     module: {

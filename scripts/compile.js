@@ -8,14 +8,11 @@ const config = require('../configs/webpack.config');
 
 const buildFolderName = 'build';
 const buildPath = path.join(__dirname, '..', buildFolderName);
-const srcPath = path.join(__dirname, '..');
 const nodeEnv = process.env.NODE_ENV;
 
 const webpackConfig = config(nodeEnv, buildPath);
-const copyFileAsync = promisify(fs.copyFile);
 module.exports = promisify(rimraf)(buildPath)
   .then(() => promisify(fs.mkdir)(buildPath))
-  .then(() => copyFileAsync(path.join(srcPath, 'index.html'), path.join(buildPath, 'index.html')))
   .then(() => new Promise((resolve, reject) => webpack(
     webpackConfig,
     (err, stat) => err || stat.hasErrors() ? reject(err || stat.toString()) : resolve(stat)
