@@ -7,6 +7,11 @@ process.env.NODE_ENV = get(process.env, 'NODE_ENV', 'development');
 require('./compile').then(({ path: buildPath, filename }) => {
   console.log(chalk.cyan('Starting App'));
 
+  const stopHandler = () => process.exit(100);
+  process.on('SIGTERM', stopHandler);
+  process.on('SIGINT', stopHandler);
+  process.on('SIGHUP', stopHandler);
+
   let firstStart = true;
   nodemon({
     script: path.join(buildPath, filename),
