@@ -92,7 +92,8 @@ const appendFuturesAccountBalance = async (key, origBalances) => {
       asset: pos.symbol.replace(/(BNB|BUSD|USDT)$/i, ''),
       positionSide: pos.positionSide,
       leverage: Number(pos.leverage),
-      positionAmt: Number(pos.positionAmt)
+      positionAmt: Number(pos.positionAmt),
+      entryPrice: Number(pos.entryPrice)
     });
   }, []);
 
