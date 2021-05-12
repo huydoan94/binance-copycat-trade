@@ -41,13 +41,14 @@ const fetchFutureBalance = (() => {
   const cache = {};
   return ({ key, params, sig }) => {
     const cacheValue = cache[key];
-    if (cacheValue && Date.now() - cacheValue.time < (60 * 1000)) return cacheValue.value;
+    if (cacheValue) return cacheValue.value;
 
     const value = global.futureApi.get(
-      `/balance?${params}&signature=${sig}`,
+      `/account?${params}&signature=${sig}`,
       { headers: { 'X-MBX-APIKEY': key } }
     );
     cache[key] = { value, time: Date.now() };
+    setTimeout(() => { delete cache[key]; }, 60 * 1000);
     return value;
   };
 })();
@@ -75,21 +76,25 @@ const appendFuturesAccountBalance = async (key, balances) => {
   const sig = getHash(params, futureApiKey.secret);
   const { data } = await fetchFutureBalance({ key: futureApiKey.key, sig, params });
 
-  return data.reduce((balancesAcc, asset) => {
-    const assetBalance = Number(asset.balance);
-    if (assetBalance === 0) return balancesAcc;
+  const totalMarginBalance = Number(data.totalMarginBalance);
+  if (!totalMarginBalance) return balances;
 
-    const balanceIndex = balancesAcc.findIndex(a => a.asset === asset.asset);
-    if (balanceIndex === -1) {
-      return [...balancesAcc, { asset: asset.asset, free: 0, locked: assetBalance }];
-    }
+  const usdtBalance = balances.find(a => a.asset === 'USDT');
+  if (!usdtBalance) balances.push({ asset: 'USDT', free: 0, locked: totalMarginBalance });
+  else usdtBalance.locked += totalMarginBalance;
 
-    balancesAcc[balanceIndex] = {
-      ...balancesAcc[balanceIndex],
-      locked: balancesAcc[balanceIndex].locked + assetBalance
-    };
-    return balancesAcc;
-  }, [...balances]);
+  const futureBalances = data.positions.reduce((acc, pos) => {
+    if (!Number(pos.maintMargin)) return acc;
+
+    return acc.concat({
+      asset: pos.symbol.replace(/(BNB|BUSD|USDT)$/i, ''),
+      positionSide: pos.positionSide,
+      leverage: Number(pos.leverage),
+      positionAmt: Number(pos.positionAmt)
+    });
+  }, []);
+
+  return balances.concat(futureBalances);
 };
 const setAccountBalanceDataTimeout = apiKey => setTimeout(accountBalanceDataTimeout(apiKey), 5 * 60 * 1000);
 export const getBinanceAccounHandler = async (req, res) => {
