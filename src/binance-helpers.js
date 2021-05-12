@@ -65,6 +65,7 @@ const accountBalanceDataTimeout = apiKey => () => {
     delete accountBalanceMap[apiKey];
   }
 };
+const setAccountBalanceDataTimeout = apiKey => setTimeout(accountBalanceDataTimeout(apiKey), 5 * 60 * 1000);
 const appendFuturesAccountBalance = async (key, origBalances) => {
   const balances = cloneDeep(origBalances);
 
@@ -99,7 +100,6 @@ const appendFuturesAccountBalance = async (key, origBalances) => {
 
   return balances.concat(futureBalances);
 };
-const setAccountBalanceDataTimeout = apiKey => setTimeout(accountBalanceDataTimeout(apiKey), 5 * 60 * 1000);
 export const getBinanceAccounHandler = async (req, res) => {
   const apiKey = req.get('X-MBX-APIKEY');
   if (isEmpty(apiKey)) return res.json([]);
