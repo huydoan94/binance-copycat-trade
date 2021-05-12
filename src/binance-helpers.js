@@ -79,12 +79,12 @@ const appendFuturesAccountBalance = async (key, origBalances) => {
   const sig = getHash(params, futureApiKey.secret);
   const { data } = await fetchFutureBalance({ key: futureApiKey.key, sig, params });
 
-  const totalMarginBalance = Number(data.totalMarginBalance);
-  if (!totalMarginBalance) return balances;
+  const totalWalletBalance = Number(data.totalWalletBalance);
+  if (!totalWalletBalance) return balances;
 
   const usdtBalance = balances.find(a => a.asset === 'USDT');
-  if (!usdtBalance) balances.push({ asset: 'USDT', free: 0, locked: totalMarginBalance });
-  else usdtBalance.locked += totalMarginBalance;
+  if (!usdtBalance) balances.push({ asset: 'USDT', free: 0, locked: totalWalletBalance });
+  else usdtBalance.locked += totalWalletBalance;
 
   const futureBalances = data.positions.reduce((acc, pos) => {
     if (!Number(pos.maintMargin)) return acc;
