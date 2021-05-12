@@ -1,4 +1,4 @@
-import { keyBy, forEach, isEmpty, map } from 'lodash';
+import { keyBy, forEach, isEmpty, map, cloneDeep } from 'lodash';
 
 import BinanceSocket from './binance-socket';
 import AccountBalance from './binance-account-balance';
@@ -65,7 +65,9 @@ const accountBalanceDataTimeout = apiKey => () => {
     delete accountBalanceMap[apiKey];
   }
 };
-const appendFuturesAccountBalance = async (key, balances) => {
+const appendFuturesAccountBalance = async (key, origBalances) => {
+  const balances = cloneDeep(origBalances);
+
   let futureApiKeys = process.env.FUTURE_APIS || '[]';
   futureApiKeys = JSON.parse(futureApiKeys);
 
