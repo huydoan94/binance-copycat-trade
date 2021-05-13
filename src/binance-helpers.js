@@ -94,7 +94,8 @@ const appendFuturesAccountBalance = async (key, origBalances) => {
       positionSide: pos.positionSide,
       leverage: Number(pos.leverage),
       positionAmt: Number(pos.positionAmt),
-      entryPrice: Number(pos.entryPrice)
+      entryPrice: Number(pos.entryPrice),
+      unrealizedProfit: Number(pos.unrealizedProfit)
     });
   }, []);
 
